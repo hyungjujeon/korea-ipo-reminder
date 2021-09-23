@@ -8,7 +8,7 @@ import yaml
 #         CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
 #     driver = webdriver.Chrome('../../chromedriver.exe'))
 #     driver.implicitly_wait(3)
-#     driver.get('https://kauth.kakao.com/oauth/authorize?client_id=' + CLIENT_ID + '&redirect_uri=https://localhost.com&response_type=code')
+#     driver.get('https://kauth.kakao.com/oauth/authorize?client_id=' + CLIENT_ID + '&redirect_uri=https://hzoo.tistory.com&response_type=code')
 #
 #     driver.find_element_by_name('email').send_keys(KAKAO_ID)
 #     driver.find_element_by_name('password').send_keys(KAKAO_PW)
@@ -22,9 +22,6 @@ import yaml
 #     # button.click()
 
 def create_token(code):
-    if os.path.isfile('../../kakao_token.json'):
-        pass
-    else:
         with open('../../config.yaml') as f:
             CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
 
@@ -32,7 +29,7 @@ def create_token(code):
         data = {
             'grant_type': 'authorization_code',
             'client_id': CLIENT_ID,
-            'redirect_uri': 'https://localhost.com',
+            'redirect_uri': 'https://hzoo.tistory.com',
             'code': code
         }
         response = requests.post(url, data=data)
@@ -71,7 +68,7 @@ def print_hello_world():
     headers = {'Authorization': 'Bearer ' + kakao_token['access_token']}
     data = {'template_object': json.dumps({'object_type': 'text',
                                            'text': 'Hello, world!',
-                                           'link': {'web_url': 'https://hzoo.tistory.com/'}})}
+                                           'link': {'web_url': 'https://hzoo.tistory.com/m'}})}
 
     response = requests.post(url, headers=headers, data=data)
     if response.json().get('result_code') == 0:
@@ -80,6 +77,7 @@ def print_hello_world():
         print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
 
 # response_code = get_response_code()
-response_code = 'abc'
-create_token(response_code)
+# response_code = 'abc'
+#create_token(response_code)
+#refresh_token()
 print_hello_world()
