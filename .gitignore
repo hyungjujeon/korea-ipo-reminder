@@ -10,8 +10,10 @@
 .DS_Store
 __pycache__
 config.yaml
-kakao_token.json
-refresh_kakao_token.json
+chromedriver
+
+#src/json
+src/json
 
 # User-specific stuff
 .idea/**/workspace.xml
