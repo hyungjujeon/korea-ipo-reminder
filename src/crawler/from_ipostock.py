@@ -1,74 +1,105 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from enum import IntEnum
 import pandas as pd
 
 class UrlTypeIndex(IntEnum):
     PUBLIC_OFFERING = 0  # 공모정보
-    SHARE_HOLDER = 1  # 주주구성
+    SHARE_HOLDER    = 1  # 주주구성
     DEMAND_FORECAST = 2  # 수요예측
 
-def get_url_list(target_date):
-    year = target_date.year
-    month = target_date.month
-
-    base_url = 'http://ipostock.co.kr'
-    temp_url = f'http://ipostock.co.kr/sub03/ipo04.asp?str1={year}&str2={month}'
-    response = requests.get(temp_url)
-    temp_html = response.content.decode('utf-8', 'replace')
-    temp_soup = BeautifulSoup(temp_html, 'lxml')
-
-    company_name_a_tag_list = temp_soup.select("a[href^='/view_pg/']")
-    offering_period_td_list = temp_soup.select("td[width^='88']")
-    # 테이블 열이름 td[0:3] -> 환불일, 상장일, 경쟁률 없애기
-    temp_date_td_list = temp_soup.select("td[width^='60']")[3:]
-
-    offering_before_day_url_list = []
-    offering_start_url_list = []
-    offering_finish_url_list = []
+def get_ipo_url_list(target_date):
     ipo_before_day_url_list = []
     ipo_d_day_url_list = []
 
-    for idx in range(0, len(offering_period_td_list)):
-        offering_start_temp, offering_fin_temp = offering_period_td_list[idx].text.strip().replace('\xa0', '').split('~')
-        ipo_date = temp_date_td_list[1 + 2 * idx].text.strip().replace(' ', '')
+    base_url = 'http://ipostock.co.kr'
+    for page in range(1, 4):
+        temp_url = f'http://www.ipostock.co.kr/sub03/05_7.asp?page={page}'
+        response = requests.get(temp_url)
+        temp_html = response.content.decode('utf-8', 'replace')
+        temp_soup = BeautifulSoup(temp_html, 'lxml')
 
-        offering_start = datetime.strptime(str(year) + '.' + offering_start_temp, "%Y.%m.%d")
-        date_diff_offering_start = (target_date - offering_start).days
-        is_offering_ready = True if (date_diff_offering_start >= -1 and date_diff_offering_start <= 1) else False
+        company_name_a_tag_list = temp_soup.select("a[href^='/view_pg/']")
+        ipo_period_td_list = temp_soup.select("td[width^='120']")[2: :2]
 
-        try:
-            ipo_start = datetime.strptime(str(year) + '.' + ipo_date, "%Y.%m.%d")
-            date_diff_ipo_start = (target_date - ipo_start).days
-            is_ipo_ready = True if (date_diff_ipo_start == -1 or date_diff_ipo_start == 0) else False
+        latest_ipo_start_temp = ipo_period_td_list[0].text.strip().replace(' ', '')
+        latest_ipo_start = datetime.strptime(latest_ipo_start_temp, "%Y.%m.%d")
 
-            url = base_url + company_name_a_tag_list[idx].get('href')
+        recent_ipo_start_temp = ipo_period_td_list[-1].text.strip().replace(' ', '')
+        recent_ipo_start = datetime.strptime(recent_ipo_start_temp, "%Y.%m.%d")
 
-            if (not is_offering_ready) and (not is_ipo_ready):
-                continue
-            elif date_diff_offering_start == -1:
-                offering_before_day_url_list.append(url)
-            elif date_diff_offering_start == 0:
-                offering_start_url_list.append(url)
-            elif date_diff_offering_start == 1:
-                offering_finish_url_list.append(url)
-            elif date_diff_ipo_start == -1:
-                ipo_before_day_url_list.append(url)
-            elif date_diff_ipo_start == 0:
-                ipo_d_day_url_list.append(url)
-        except:
-            url = base_url + company_name_a_tag_list[idx].get('href')
-            if (not is_offering_ready):
-                continue
-            elif date_diff_offering_start == -1:
-                offering_before_day_url_list.append(url)
-            elif date_diff_offering_start == 0:
-                offering_start_url_list.append(url)
-            elif date_diff_offering_start == 1:
-                offering_finish_url_list.append(url)
+        if recent_ipo_start > target_date:
+            continue
+        elif (target_date - latest_ipo_start).days > 1:
+            break
+        else:
+            for idx in range(-1, -len(ipo_period_td_list), -1):
+                ipo_start_temp = ipo_period_td_list[idx].text.strip().replace(' ', '')
+                ipo_start = datetime.strptime(ipo_start_temp, "%Y.%m.%d")
+                date_diff_ipo_start = (target_date - ipo_start).days
 
-    return [offering_before_day_url_list, offering_start_url_list, offering_finish_url_list, ipo_before_day_url_list, ipo_d_day_url_list]
+                url = base_url + company_name_a_tag_list[idx].get('href')
+
+                if date_diff_ipo_start == -1:
+                    ipo_before_day_url_list.append(url)
+                elif date_diff_ipo_start == 0:
+                    ipo_d_day_url_list.append(url)
+
+    return [ipo_before_day_url_list, ipo_d_day_url_list]
+
+def get_bidding_url_list(target_date):
+    year = target_date.year
+    month = target_date.month
+
+    bidding_before_day_url_list = []
+    bidding_start_url_list = []
+    bidding_finish_url_list = []
+
+    base_url = 'http://ipostock.co.kr'
+    for page in range(1, 4):
+        temp_url = f'http://www.ipostock.co.kr/sub03/05_6.asp?page={page}'
+        response = requests.get(temp_url)
+        temp_html = response.content.decode('utf-8', 'replace')
+        temp_soup = BeautifulSoup(temp_html, 'lxml')
+
+        company_name_a_tag_list = temp_soup.select("a[href^='/view_pg/']")
+        bidding_period_td_list = temp_soup.select("td[width^='105']")[2:]
+        latest_bidding_start_temp = bidding_period_td_list[0].text.strip().replace(' ', '').split('~')[0]
+        latest_bidding_start = datetime.strptime(str(year) + '.' + latest_bidding_start_temp, "%Y.%m.%d")
+
+        recent_bidding_start_temp = bidding_period_td_list[-1].text.strip().replace(' ', '').split('~')[0]
+        recent_bidding_start = datetime.strptime(str(year) + '.' + recent_bidding_start_temp, "%Y.%m.%d")
+
+        if recent_bidding_start > target_date:
+            continue
+        elif (target_date - latest_bidding_start).days > 4:
+            break
+        else:
+            for idx in range(-1, -len(bidding_period_td_list), -1):
+                bidding_start_temp, bidding_fin_temp = bidding_period_td_list[idx].text.strip().replace(' ', '').split('~')
+                bidding_start = datetime.strptime(str(year) + '.' + bidding_start_temp, "%Y.%m.%d")
+                bidding_finish = datetime.strptime(str(year) + '.' + bidding_fin_temp, "%Y.%m.%d")
+                date_diff_bidding_start = (target_date - bidding_start).days
+                date_diff_bidding_finish = (target_date - bidding_finish).days
+
+                url = base_url + company_name_a_tag_list[idx].get('href')
+
+                if date_diff_bidding_finish > 0:
+                    continue
+                elif date_diff_bidding_start == -1:
+                    bidding_before_day_url_list.append(url)
+                elif date_diff_bidding_start == 0:
+                    bidding_start_url_list.append(url)
+                elif date_diff_bidding_start >= 1 and date_diff_bidding_start <= 4:
+                    if date_diff_bidding_finish == 0:
+                        bidding_finish_url_list.append(url)
+                    else: #리츠의 경우 청약일이 3일 -> 2틀차는 시작일로 치려고 함
+                        bidding_start_url_list.append(url)
+                else:
+                    break
+
+    return [bidding_before_day_url_list, bidding_start_url_list, bidding_finish_url_list]
 
 def crawl_ipo_info(url):
     url_list = []
@@ -80,18 +111,21 @@ def crawl_ipo_info(url):
 
     bidding_info_df = get_bidding_info_df(url_list[UrlTypeIndex.PUBLIC_OFFERING])
     company_name = bidding_info_df['종목명']
-    underwriter_df = get_underwriter_df(url_list[UrlTypeIndex.PUBLIC_OFFERING], company_name)
+    underwriter_list = get_underwriter_list(url_list[UrlTypeIndex.PUBLIC_OFFERING])
+    underwriter = ', '.join(underwriter_list)
 
     shares_info_df = get_shareholder_info_df(url_list[UrlTypeIndex.SHARE_HOLDER], company_name)
     ipo_info_df = pd.merge(bidding_info_df, shares_info_df)
 
     try:
         demand_forecast_result_df = get_demand_forecast_result_df(url_list[UrlTypeIndex.DEMAND_FORECAST], company_name)
-        demand_forecast_band_info_df = get_demand_forecast_band_info_df(url_list[UrlTypeIndex.DEMAND_FORECAST], company_name)
+        demand_forecast_band_info_df = get_demand_forecast_band_info_df(url_list[UrlTypeIndex.DEMAND_FORECAST],company_name)
         ipo_info_df = pd.merge(ipo_info_df, demand_forecast_result_df)
     except IndexError:
         # 청약 전날에 수요예측 결과가 늦게 표기되는 경우가 종종 있음
         print("수요예측 결과 미표기")
+
+    ipo_info_df['주간사'] = underwriter
 
     return ipo_info_df
 
@@ -222,7 +256,7 @@ def get_demand_forecast_result_df(url, company_name):
                                        '의무보유확약비율': commitment_ratio}, index=[0])
     return demand_forecast_df
 
-def get_underwriter_df(url, company_name):
+def get_underwriter_list(url):
     response = requests.get(url)
     html = response.content.decode('utf-8', 'replace')
     soup = BeautifulSoup(html, 'lxml')
@@ -231,14 +265,12 @@ def get_underwriter_df(url, company_name):
     underwriter_rows = underwriter_table.find_all('tr')[1:]
 
     # 주간사 별 배정수량
-    underwriter_name_list = []
-    underwriter_quantity_list = []
+    underwriter_list = []
 
     for underwriter_row in underwriter_rows:
-        underwriter_name_list.append(underwriter_row.find_all('td')[0].text.strip().replace(" ", ""))
-        underwriter_quantity_list.append(underwriter_row.find_all('td')[1].text.strip().replace(" ", ""))
+        underwriter_list.append(underwriter_row.find_all('td')[0].text.strip().replace(" ", "") + '(' + underwriter_row.find_all('td')[1].text.strip().replace(" ", "") + ')')
 
-    return pd.DataFrame({'종목명': [company_name] * len(underwriter_rows), '주간사': underwriter_name_list, '배정수량': underwriter_quantity_list})
+    return underwriter_list
 
 def get_demand_forecast_band_info_df(url, company_name):
     response = requests.get(url)
@@ -270,7 +302,8 @@ def get_demand_forecast_band_info_df(url, company_name):
     return demand_forecast_band_info_df
 
 def get_ipo_data_list(date):
-    url_list = get_url_list(date)
+    url_list = get_bidding_url_list(date)
+    url_list += get_ipo_url_list(date)
     ipo_data_list = []
     for urls in url_list:
         returned_data_list = []
