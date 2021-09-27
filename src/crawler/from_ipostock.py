@@ -302,7 +302,6 @@ def get_demand_forecast_band_info_df(url, company_name):
     return demand_forecast_band_info_df
 
 def get_ipo_data_list(date):
-    # url_list = get_url_list(date)
     url_list = get_bidding_url_list(date)
     url_list += get_ipo_url_list(date)
     ipo_data_list = []
