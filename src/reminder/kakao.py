@@ -3,11 +3,10 @@ import requests
 import json
 import yaml
 from datetime import datetime
-import src.crawler.from_ipostock as crawler_ipostock
 import src.column_description as cd
 
 def create_token(code):
-        with open('../../config.yaml') as f:
+        with open('../config.yaml') as f:
             CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
 
         url = 'https://kauth.kakao.com/oauth/token'
@@ -20,13 +19,13 @@ def create_token(code):
         response = requests.post(url, data=data)
         tokens = response.json()
 
-        with open('../json/kakao_token.json', 'w') as fp:
+        with open('json/kakao_token.json', 'w') as fp:
             json.dump(tokens, fp)
 
 def refresh_token():
-    with open('../json/kakao_token.json', 'r') as kt_json:
+    with open('json/kakao_token.json', 'r') as kt_json:
         kakao_token = json.load(kt_json)
-    with open('../../config.yaml') as f:
+    with open('../config.yaml') as f:
         CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
 
     refresh_token = kakao_token['refresh_token']
@@ -40,13 +39,13 @@ def refresh_token():
     response = requests.post(url, data=data)
     refresh_kakao_token = response.json()
 
-    with open('../json/refresh_kakao_token.json', 'w') as fp:
+    with open('json/refresh_kakao_token.json', 'w') as fp:
         json.dump(refresh_kakao_token, fp)
 
 def print_hello_world():
     refresh_token()
 
-    with open('../json/refresh_kakao_token.json', 'r') as tk:
+    with open('json/refresh_kakao_token.json', 'r') as tk:
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/default/send'
@@ -124,7 +123,7 @@ def alarm_text_message(ipo_data_list, post_id):
 
     refresh_token()
 
-    with open('../json/refresh_kakao_token.json', 'r') as tk:
+    with open('json/refresh_kakao_token.json', 'r') as tk:
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/default/send'
@@ -146,7 +145,7 @@ def alarm_text_message(ipo_data_list, post_id):
 def send_template_message():
     refresh_token()
 
-    with open('../json/refresh_kakao_token.json', 'r') as tk:
+    with open('json/refresh_kakao_token.json', 'r') as tk:
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/send'
@@ -178,7 +177,7 @@ def get_header_title_text(index):
 
 def alarm_message(ipo_data_list):
     refresh_token()
-    with open('../json/refresh_kakao_token.json', 'r') as tk:
+    with open('json/refresh_kakao_token.json', 'r') as tk:
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/default/send'
@@ -235,8 +234,3 @@ def alarm_message(ipo_data_list):
                 print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
 
             time.sleep(5)
-
-today = datetime.now()
-ipo_data_list = crawler_ipostock.get_ipo_data_list(today)
-alarm_text_message(ipo_data_list[:3], 47)
-alarm_text_message(ipo_data_list[3:], 48)

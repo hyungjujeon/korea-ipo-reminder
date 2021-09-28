@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from bs4 import BeautifulSoup
 from enum import IntEnum
 import pandas as pd
@@ -124,6 +124,8 @@ def crawl_ipo_info(url):
     except IndexError:
         # 청약 전날에 수요예측 결과가 늦게 표기되는 경우가 종종 있음
         print("수요예측 결과 미표기")
+        ipo_info_df['기관경쟁률'] = '미표기'
+        ipo_info_df['의무보유확약비율'] = '미표기'
 
     ipo_info_df['주간사'] = underwriter
 
