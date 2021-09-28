@@ -8,6 +8,7 @@ from datetime import timedelta
 import pandas as pd
 import numpy as np
 import src.crawler.from_ipostock as crawler_ipostock
+import src.column_description as cd
 
 # def get_response_code(login_info):
 #     with open('../../config.yaml') as f:
@@ -41,11 +42,11 @@ def create_token(code):
         response = requests.post(url, data=data)
         tokens = response.json()
 
-        with open('../../kakao_token.json', 'w') as fp:
+        with open('../json/kakao_token.json', 'w') as fp:
             json.dump(tokens, fp)
 
 def refresh_token():
-    with open('../../kakao_token.json', 'r') as kt_json:
+    with open('../json/kakao_token.json', 'r') as kt_json:
         kakao_token = json.load(kt_json)
     with open('../../config.yaml') as f:
         CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
@@ -61,13 +62,13 @@ def refresh_token():
     response = requests.post(url, data=data)
     refresh_kakao_token = response.json()
 
-    with open('../../refresh_kakao_token.json', 'w') as fp:
+    with open('../json/refresh_kakao_token.json', 'w') as fp:
         json.dump(refresh_kakao_token, fp)
 
 def print_hello_world():
     refresh_token()
 
-    with open('../../refresh_kakao_token.json', 'r') as tk:
+    with open('../json/refresh_kakao_token.json', 'r') as tk:
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/default/send'
@@ -82,10 +83,92 @@ def print_hello_world():
     else:
         print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
 
+def get_bid_contents(ipo_data_list):
+    today = datetime.now()
+
+    contents = f'📢청약정보📢\n'
+    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일🗓\n'
+
+    for idx, ipo_data in enumerate(ipo_data_list):
+        if ipo_data:
+            if idx == 0:
+                contents += '\n🔥내일 청약 예정 종목'
+            elif idx == 1:
+                contents += '\n🔥오늘 청약 시작 종목'
+            elif idx == 2:
+                contents += '\n🔥오늘 청약 마감 종목'
+            for data in ipo_data:
+                data = data.values.tolist()[0]
+                company_name = data[cd.IpoData.COMPANY_NAME]
+                offering_price = data[cd.IpoData.OFFERING_PRICE]
+
+                contents += '\n  📊 ' + company_name + f'(공모가: {offering_price})'
+
+            contents += '\n'
+
+    return contents
+
+def get_ipo_contents(ipo_data_list):
+    today = datetime.now()
+
+    contents = f'📢상장정보📢\n'
+    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일🗓\n'
+
+    for idx, ipo_data in enumerate(ipo_data_list):
+        if ipo_data:
+            if idx == 0:
+                contents += '\n🔥내일 상장 종목'
+            elif idx == 1:
+                contents += '\n🔥오늘 상장 종목'
+            for data in ipo_data:
+                data = data.values.tolist()[0]
+                company_name = data[cd.IpoData.COMPANY_NAME]
+                offering_price = data[cd.IpoData.OFFERING_PRICE]
+
+                contents += '\n  📊 ' + company_name + f'(공모가: {offering_price})'
+
+            contents += '\n'
+
+    return contents
+
+def alarm_text_message(ipo_data_list):
+    contents = ''
+    if len(ipo_data_list) > 2:
+        if len(ipo_data_list[0]) + len(ipo_data_list[1]) + len(ipo_data_list[2]) == 0:
+            return
+        else:
+            contents = get_bid_contents(ipo_data_list)
+    else:
+        if len(ipo_data_list[0]) + len(ipo_data_list[1]) == 0:
+            return
+        else:
+            contents = get_ipo_contents(ipo_data_list)
+
+    refresh_token()
+
+    with open('../json/refresh_kakao_token.json', 'r') as tk:
+        kakao_token = json.load(tk)
+
+    url = 'https://kapi.kakao.com/v2/api/talk/memo/default/send'
+    headers = {'Authorization': 'Bearer ' + kakao_token['access_token']}
+    data = {'template_object': json.dumps({'object_type': 'text',
+                                           'text': contents,
+                                           'link': {'web_url': 'https://hzoo.tistory.com/47',
+                                                    'mobile_web_url': 'https://hzoo.tistory.com/m/47'
+                                                    },
+                                           'button_title': '더 자세한 정보'
+                                           })}
+
+    response = requests.post(url, headers=headers, data=data)
+    if response.json().get('result_code') == 0:
+        print('메시지를 성공적으로 보냈습니다.')
+    else:
+        print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
+
 def send_template_message():
     refresh_token()
 
-    with open('../../refresh_kakao_token.json', 'r') as tk:
+    with open('../json/refresh_kakao_token.json', 'r') as tk:
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/send'
@@ -99,7 +182,6 @@ def send_template_message():
         print('메시지를 성공적으로 보냈습니다.')
     else:
         print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
-
 
 def get_header_title_text(index):
     header_title_dict = {
@@ -118,7 +200,7 @@ def get_header_title_text(index):
 
 def alarm_message(ipo_data_list):
     refresh_token()
-    with open('../../refresh_kakao_token.json', 'r') as tk:
+    with open('../json/refresh_kakao_token.json', 'r') as tk:
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/default/send'
@@ -176,17 +258,7 @@ def alarm_message(ipo_data_list):
 
             time.sleep(5)
 
-# response_code = get_response_code()
-# response_code = 'abc'
-
-#create_token(response_code)
-#refresh_token()
-#print_hello_world()
-
-#send_template_message()
-
-#Test when 21/09/13
-# today = datetime.now()
-# target = today + timedelta(days=-11)
-# ipo_data_list = crawler_ipostock.get_ipo_data_list(target)
-# alarm_message(ipo_data_list)
+today = datetime.now()
+ipo_data_list = crawler_ipostock.get_ipo_data_list(today)
+alarm_text_message(ipo_data_list[:3])
+alarm_text_message(ipo_data_list[3:])
