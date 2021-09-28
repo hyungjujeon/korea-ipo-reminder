@@ -1,32 +1,10 @@
 import time
 import requests
 import json
-import os
 import yaml
 from datetime import datetime
-from datetime import timedelta
-import pandas as pd
-import numpy as np
 import src.crawler.from_ipostock as crawler_ipostock
 import src.column_description as cd
-
-# def get_response_code(login_info):
-#     with open('../../config.yaml') as f:
-#         CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
-#     driver = webdriver.Chrome('../../chromedriver.exe'))
-#     driver.implicitly_wait(3)
-#     driver.get('https://kauth.kakao.com/oauth/authorize?client_id=' + CLIENT_ID + '&redirect_uri=https://hzoo.tistory.com&response_type=code')
-#
-#     driver.find_element_by_name('email').send_keys(KAKAO_ID)
-#     driver.find_element_by_name('password').send_keys(KAKAO_PW)
-#
-#     requests = driver.find_element_by_class_name('btn_g.btn_confirm.submit').click()
-#
-#     for request in requests:
-#         if request.response
-#
-#     button = driver.find_element_by_xpath("//*[@id='login-form']/fieldset/div[8]/button[1]")
-#     # button.click()
 
 def create_token(code):
         with open('../../config.yaml') as f:
@@ -92,11 +70,11 @@ def get_bid_contents(ipo_data_list):
     for idx, ipo_data in enumerate(ipo_data_list):
         if ipo_data:
             if idx == 0:
-                contents += '\n🔥내일 청약 예정 종목'
+                contents += '\n🔥오늘 청약 마감 종목'
             elif idx == 1:
                 contents += '\n🔥오늘 청약 시작 종목'
             elif idx == 2:
-                contents += '\n🔥오늘 청약 마감 종목'
+                contents += '\n🔥내일 청약 예정 종목'
             for data in ipo_data:
                 data = data.values.tolist()[0]
                 company_name = data[cd.IpoData.COMPANY_NAME]
@@ -117,9 +95,9 @@ def get_ipo_contents(ipo_data_list):
     for idx, ipo_data in enumerate(ipo_data_list):
         if ipo_data:
             if idx == 0:
-                contents += '\n🔥내일 상장 종목'
-            elif idx == 1:
                 contents += '\n🔥오늘 상장 종목'
+            elif idx == 1:
+                contents += '\n🔥내일 상장 종목'
             for data in ipo_data:
                 data = data.values.tolist()[0]
                 company_name = data[cd.IpoData.COMPANY_NAME]
@@ -131,7 +109,7 @@ def get_ipo_contents(ipo_data_list):
 
     return contents
 
-def alarm_text_message(ipo_data_list):
+def alarm_text_message(ipo_data_list, post_id):
     contents = ''
     if len(ipo_data_list) > 2:
         if len(ipo_data_list[0]) + len(ipo_data_list[1]) + len(ipo_data_list[2]) == 0:
@@ -153,8 +131,8 @@ def alarm_text_message(ipo_data_list):
     headers = {'Authorization': 'Bearer ' + kakao_token['access_token']}
     data = {'template_object': json.dumps({'object_type': 'text',
                                            'text': contents,
-                                           'link': {'web_url': 'https://hzoo.tistory.com/47',
-                                                    'mobile_web_url': 'https://hzoo.tistory.com/m/47'
+                                           'link': {'web_url': 'https://hzoo.tistory.com/' + str(post_id),
+                                                    'mobile_web_url': 'https://hzoo.tistory.com/m/' + str(post_id)
                                                     },
                                            'button_title': '더 자세한 정보'
                                            })}
@@ -260,5 +238,5 @@ def alarm_message(ipo_data_list):
 
 today = datetime.now()
 ipo_data_list = crawler_ipostock.get_ipo_data_list(today)
-alarm_text_message(ipo_data_list[:3])
-alarm_text_message(ipo_data_list[3:])
+alarm_text_message(ipo_data_list[:3], 47)
+alarm_text_message(ipo_data_list[3:], 48)

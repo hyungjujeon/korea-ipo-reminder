@@ -145,11 +145,11 @@ def get_bid_parameter(ipo_data_list):
         day_info = ''
         if idx == 0:
             tomorrow = today + timedelta(days=1)
-            day_info = f'📋내일({tomorrow.month}/{tomorrow.day}) 청약 시작 : '
+            day_info = f'📢오늘({today.month}/{today.day}) 청약 마감 : '
         elif idx == 1:
             day_info = f'🔔오늘({today.month}/{today.day}) 청약 시작 : '
         else:
-            day_info = f'📢오늘({today.month}/{today.day}) 청약 마감 : '
+            day_info = f'📋내일({tomorrow.month}/{tomorrow.day}) 청약 시작 : '
 
         try:
             for data in ipo_data:
@@ -209,9 +209,9 @@ def get_ipo_parameter(ipo_data_list):
         day_info = ''
         if idx == 0:
             tomorrow = today + timedelta(days=1)
-            day_info = f'📋내일 상장({tomorrow.month}/{tomorrow.day}) : '
-        else:
             day_info = f'🔔오늘({today.month}/{today.day}) 상장 : '
+        else:
+            day_info = f'📋내일 상장({tomorrow.month}/{tomorrow.day}) : '
 
         try:
             for data in ipo_data:
@@ -283,9 +283,3 @@ def write_new_post(ipo_data_list):
     new_post_url = new_post_json['tistory']['url']
 
     return new_post_url
-
-today = datetime.now()
-ipo_data_list = crawler_ipostock.get_ipo_data_list(today)
-
-bidding_post_url = write_new_post(ipo_data_list[:3])
-ipo_post_url = write_new_post(ipo_data_list[3:])
