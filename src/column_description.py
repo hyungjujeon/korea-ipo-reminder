@@ -1,11 +1,11 @@
 from enum import IntEnum
 
 class IpoDataList(IntEnum):
-    OFFERING_BEFORE = 0
-    OFFERING_START = 1
-    OFFERING_FINISH = 2
-    IPO_BEFORE = 3
-    IPO_D_DAY = 4
+    OFFERING_FINISH         = 0
+    OFFERING_START          = 1
+    OFFERING_BEFORE         = 2
+    IPO_D_DAY               = 3
+    IPO_BEFORE              = 4
 
 class IpoData(IntEnum):
     COMPANY_NAME                = 0  # 종목명
