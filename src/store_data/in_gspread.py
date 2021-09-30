@@ -23,20 +23,20 @@ def get_google_spreadsheet(sheet_name):
 
 def convert_data_format(row_data):
     weekdays = {0: ' (월)', 1: ' (화)', 2: ' (수)', 3: ' (목)', 4: ' (금)', 5: ' (토)', 6: ' (일)'}
-    row_data[cd.BidData.BIDDING_START] += weekdays[
-        datetime.strptime(row_data[cd.BidData.BIDDING_START], "%Y.%m.%d").weekday()]
-    row_data[cd.BidData.BIDDING_FINISH] += weekdays[
-        datetime.strptime(row_data[cd.BidData.BIDDING_FINISH], "%Y.%m.%d").weekday()]
-    row_data[cd.BidData.REFUND_DATE] += weekdays[
-        datetime.strptime(row_data[cd.BidData.REFUND_DATE], "%Y.%m.%d").weekday()]
-    row_data[cd.BidData.IPO_DATE] += weekdays[datetime.strptime(row_data[cd.BidData.IPO_DATE], "%Y.%m.%d").weekday()]
+    row_data[cd.IpoData.BIDDING_START] += weekdays[
+        datetime.strptime(row_data[cd.IpoData.BIDDING_START], "%Y.%m.%d").weekday()]
+    row_data[cd.IpoData.BIDDING_FINISH] += weekdays[
+        datetime.strptime(row_data[cd.IpoData.BIDDING_FINISH], "%Y.%m.%d").weekday()]
+    row_data[cd.IpoData.REFUND_DATE] += weekdays[
+        datetime.strptime(row_data[cd.IpoData.REFUND_DATE], "%Y.%m.%d").weekday()]
+    row_data[cd.IpoData.IPO_DATE] += weekdays[datetime.strptime(row_data[cd.IpoData.IPO_DATE], "%Y.%m.%d").weekday()]
 
-    row_data[cd.BidData.UNDERWRITER] = ', '.join(row_data[cd.BidData.UNDERWRITER])
-    row_data[cd.BidData.ALLOCATED_SHARE_NUM] = ', '.join(map(str, row_data[cd.BidData.ALLOCATED_SHARE_NUM]))
-    if row_data[cd.BidData.COMPETITION_RATIO] == 0:
-        row_data[cd.BidData.COMPETITION_RATIO] = '미표기'
-    if row_data[cd.BidData.COMMITMENT_RATIO] == 0:
-        row_data[cd.BidData.COMMITMENT_RATIO] = '미표기'
+    row_data[cd.IpoData.UNDERWRITER] = ', '.join(row_data[cd.IpoData.UNDERWRITER])
+    row_data[cd.IpoData.ALLOCATED_SHARE_NUM] = ', '.join(map(str, row_data[cd.IpoData.ALLOCATED_SHARE_NUM]))
+    if row_data[cd.IpoData.COMPETITION_RATIO] == 0:
+        row_data[cd.IpoData.COMPETITION_RATIO] = '미표기'
+    if row_data[cd.IpoData.COMMITMENT_RATIO] == 0:
+        row_data[cd.IpoData.COMMITMENT_RATIO] = '미표기'
 
     return row_data
 

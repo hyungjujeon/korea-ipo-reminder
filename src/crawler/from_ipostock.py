@@ -9,6 +9,21 @@ class UrlTypeIndex(IntEnum):
     SHARE_HOLDER    = 1  # 주주구성
     DEMAND_FORECAST = 2  # 수요예측
 
+def get_month_ipo_urls_list(year, month):
+    url_list = []
+
+    base_url = 'http://ipostock.co.kr'
+    temp_url = f'http://ipostock.co.kr/sub03/ipo04.asp?str1={year}&str2={month}'
+    response = requests.get(temp_url)
+    temp_html = response.content.decode('utf-8', 'replace')
+    temp_soup = BeautifulSoup(temp_html, 'lxml')
+
+    company_a_tag_list = temp_soup.select("a[href^='/view_pg/']")
+    for company_a_tag in company_a_tag_list:
+        url_list.append(base_url + company_a_tag.get('href'))
+
+    return url_list
+
 def get_ipo_url_list(target_date):
     ipo_before_day_url_list = []
     ipo_d_day_url_list = []
@@ -46,7 +61,7 @@ def get_ipo_url_list(target_date):
                 elif date_diff_ipo_start == 0:
                     ipo_d_day_url_list.append(url)
 
-    return [ipo_d_day_url_list, ipo_before_day_url_list]
+    return [ipo_before_day_url_list, ipo_d_day_url_list]
 
 def get_bidding_url_list(target_date):
     year = target_date.year
@@ -99,39 +114,33 @@ def get_bidding_url_list(target_date):
                 else:
                     break
 
-    return [bidding_finish_url_list, bidding_start_url_list, bidding_before_day_url_list]
+    return [bidding_before_day_url_list, bidding_start_url_list, bidding_finish_url_list]
 
 def crawl_ipo_info(url):
     url_list = []
     url_list.append(url)  # 공모정보 탭
+    total_list = []
 
     for page_num in [2, 5]:  # 주주구성, 수요예측 탭
         search_required_url = url.replace('_04', f'_0{page_num}')
         url_list.append(search_required_url)
-
-    bidding_info_df = get_bidding_info_df(url_list[UrlTypeIndex.PUBLIC_OFFERING])
-    company_name = bidding_info_df['종목명']
-    underwriter_list = get_underwriter_list(url_list[UrlTypeIndex.PUBLIC_OFFERING])
-    underwriter = ', '.join(underwriter_list)
-
-    shares_info_df = get_shareholder_info_df(url_list[UrlTypeIndex.SHARE_HOLDER], company_name)
-    ipo_info_df = pd.merge(bidding_info_df, shares_info_df)
-
     try:
-        demand_forecast_result_df = get_demand_forecast_result_df(url_list[UrlTypeIndex.DEMAND_FORECAST], company_name)
-        demand_forecast_band_info_df = get_demand_forecast_band_info_df(url_list[UrlTypeIndex.DEMAND_FORECAST],company_name)
-        ipo_info_df = pd.merge(ipo_info_df, demand_forecast_result_df)
-    except IndexError:
-        # 청약 전날에 수요예측 결과가 늦게 표기되는 경우가 종종 있음
-        print("수요예측 결과 미표기")
-        ipo_info_df['기관경쟁률'] = '미표기'
-        ipo_info_df['의무보유확약비율'] = '미표기'
+        bidding_info_list = get_bidding_info_list(url_list[UrlTypeIndex.PUBLIC_OFFERING])
+        shares_info_list = get_shares_info_list(url_list[UrlTypeIndex.SHARE_HOLDER])
+        underwriter_info_list = get_underwriter_info_list(url_list[UrlTypeIndex.PUBLIC_OFFERING])
 
-    ipo_info_df['주간사'] = underwriter
+        total_list = bidding_info_list + shares_info_list + underwriter_info_list
 
-    return ipo_info_df
+        demand_forecast_result_list = get_demand_forecast_result_list(url_list[UrlTypeIndex.DEMAND_FORECAST])
+        total_list += demand_forecast_result_list
 
-def get_bidding_info_df(url):
+        return total_list
+
+    except:
+        #도중 오류나면, 안읽어옴
+        return
+
+def get_bidding_info_list(url):
     response = requests.get(url)
     html = response.content.decode('utf-8', 'replace')
     soup = BeautifulSoup(html, 'lxml')
@@ -143,50 +152,156 @@ def get_bidding_info_df(url):
     price_table = tables[1]
     allocation_ratio_table = tables[2]
 
-    date_df = get_date_info_df(date_table, company_name)
-    offering_price_df = get_offering_price_info_df(price_table, company_name)
-    allocation_ratio_df = get_allocation_ratio_df(allocation_ratio_table, company_name)
+    date_info_list = get_date_info_list(date_table)
+    bidding_price_list = get_bidding_price_info_list(price_table)
+    total_share_num_list = get_total_share_num_list(allocation_ratio_table)
 
-    bidding_info_df = pd.merge(date_df, offering_price_df)
-    bidding_info_df = pd.merge(bidding_info_df, allocation_ratio_df)
+    return [company_name] + date_info_list + bidding_price_list + total_share_num_list
 
-    return bidding_info_df
-
-def get_date_info_df(date_table, company_name):
+def get_date_info_list(date_table):
+    weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
     date_table_rows = date_table.find_all('tr')[2:]
     del date_table_rows[-2]
 
     temp_ipo_date_info = date_table_rows[0].find_all('td')[1].text.strip().replace('\xa0', '').replace(" ", "")
-    offering_start = temp_ipo_date_info[:10]
-    offering_finish = temp_ipo_date_info[:5] + temp_ipo_date_info[-5:]
+    bidding_start = temp_ipo_date_info[:10]
+    bidding_finish = temp_ipo_date_info[:5] + temp_ipo_date_info[-5:]
     refund_date = date_table_rows[1].find_all('td')[1].text.strip().replace('\xa0', '').replace(" ", "")
     ipo_date = date_table_rows[2].find_all('td')[1].text.strip().replace('\xa0', '').replace(" ", "")
-    date_info_df = pd.DataFrame({'종목명': company_name,
-                                 '공모시작': offering_start,
-                                 '공모마감': offering_finish,
-                                 '환불일': refund_date,
-                                 '상장일': ipo_date}, index=[0])
 
-    return date_info_df
+    # offering_start = offering_start.strftime('%Y.%m.%d') + f'({weekdays[offering_start.weekday()]})'
+    # offering_finish = offering_finish.strftime('%Y.%m.%d') + f'({weekdays[offering_finish.weekday()]})'
+    # refund_date = refund_date.strftime('%Y.%m.%d') + f'({weekdays[refund_date.weekday()]})'
+    # ipo_date = ipo_date.strftime('%Y.%m.%d') + f'({weekdays[ipo_date.weekday()]})'
 
-def get_offering_price_info_df(price_table, company_name):
+    return [bidding_start, bidding_finish, refund_date, ipo_date]
+
+def get_bidding_price_info_list(price_table):
     price_table_rows = price_table.find_all('tr')[:-2]
     del price_table_rows[1]
 
-    offering_price_band = price_table_rows[0].find_all('td')[1].text.strip().replace('\xa0', '').replace(' ', '').replace('원', '')
-    offering_price_band_low, offering_price_band_high = offering_price_band.split('~')
-    offering_price = price_table_rows[1].find_all('td')[1].text.strip().replace('\xa0', '').replace(' ', '').replace('원', '')
-    offering_amount = price_table_rows[2].find_all('td')[1].text.strip().replace('\xa0', '').replace(' ', '').replace('원', '')
+    bidding_price_band = price_table_rows[0].find_all('td')[1].text.strip().replace('\xa0', '').replace(' ', '').replace('원', '').replace(',', '')
+    bidding_price_band_low, bidding_price_band_high = bidding_price_band.split('~') #공모가 하단, 상단
+    bidding_price = price_table_rows[1].find_all('td')[1].text.strip().replace('\xa0', '').replace(' ', '').replace('원', '').replace(',', '') #공모가격(원)
+    bidding_amount = price_table_rows[2].find_all('td')[1].text.strip().replace('\xa0', '').replace(' ', '').replace('억원', '').replace(',', '') #공모규모(억)
 
-    offering_price_info_df = pd.DataFrame({'종목명': company_name,
-                                           '공모가하단': offering_price_band_low,
-                                           '공모가상단': offering_price_band_high,
-                                           '공모가격': offering_price,
-                                           '공모규모': offering_amount}, index=[0])
+    return [int(bidding_price_band_low), int(bidding_price_band_high), int(bidding_price), int(bidding_amount)]
 
-    return offering_price_info_df
+def get_total_share_num_list(allocation_ratio_table):
+    allocation_ratio_table_rows = allocation_ratio_table.find_all('tr')
 
-def get_allocation_ratio_df(allocation_ratio_table, company_name):
+    total_share_num = allocation_ratio_table_rows[0].find_all('td')[1].text.strip().replace('\xa0', '').replace(' ', '').replace(',', '').replace('(', '').replace(')', '')
+    total_share_num, bidding_ratio = total_share_num.split('주')             #공모주식수
+    bidding_ratio = int(bidding_ratio.replace('모집', '').replace('%', ''))  #신주매출 비율(%)
+
+    return [total_share_num, bidding_ratio]
+
+def get_shares_info_list(url):
+    response = requests.get(url)
+    html = response.content.decode('utf-8', 'replace')
+    soup = BeautifulSoup(html, 'lxml')
+    table = soup.select('table[class="view_tb"]')[2]  # 유통 가능 정보 테이블
+    table_rows = table.find_all('tr')
+
+    shares_info = []
+
+    idx = -1
+    while len(shares_info) < 6:
+        tds = table_rows[idx].find_all('td')
+        idx = idx - 1
+        target_text = tds[0].text.strip().replace('\t', '').replace('\r\n', '')
+
+        if target_text in ['공모후 상장주식수', '유통가능주식합계', '보호예수물량합계']:
+            number_of_shares = int(tds[1].text.strip().replace('주', '').replace(',', ''))
+            shares_info.append(number_of_shares)
+            ratio_of_shares = float(tds[3].text.strip().replace(' ', '').replace('%', ''))
+            shares_info.append(ratio_of_shares)
+
+    # 0:주식수, 1:비율
+    return shares_info
+
+def get_demand_forecast_result_list(url):
+    response = requests.get(url)
+    html = response.content.decode('utf-8', 'replace')
+    soup = BeautifulSoup(html, 'lxml')
+
+    additional_info_table = soup.select('table[class="view_tb2"]')[1]
+    additional_info_rows = additional_info_table.find_all('tr')
+    del additional_info_rows[1]
+
+    try:
+        competition_ratio = float(additional_info_rows[0].find_all('td')[1].text.strip().replace(' ', '').replace('\xa0', '').replace(',', '').replace(':1', ''))
+    except:
+        print("기관 경쟁률 미표기")
+        competition_ratio = 0
+
+    try:
+        commitment_ratio = float(additional_info_rows[1].find_all('td')[1].text.strip().replace(' ', '').replace('%', ''))
+    except:
+        print("의무보유 확약 비율 미표기")
+        commitment_ratio = 0
+
+    return [competition_ratio, commitment_ratio]
+
+def get_underwriter_info_list(url):
+    response = requests.get(url)
+    html = response.content.decode('utf-8', 'replace')
+    soup = BeautifulSoup(html, 'lxml')
+
+    underwriter_table = soup.select('table[class="view_tb"]')[3]
+    underwriter_rows = underwriter_table.find_all('tr')[1:]
+
+    # 주간사 별 배정수량
+    underwriter_list = []
+    allocated_share_num_list = []
+
+    for underwriter_row in underwriter_rows:
+        underwriter = underwriter_row.find_all('td')[0].text.strip().replace(' ', '')
+        allocated_share_num = int(underwriter_row.find_all('td')[1].text.strip().replace(' ', '').replace('주', '').replace(',', ''))
+
+        underwriter_list.append(underwriter)
+        allocated_share_num_list.append(allocated_share_num)
+
+    return [underwriter_list, allocated_share_num_list]
+
+def get_ipo_data_list(date):
+    url_list = get_bidding_url_list(date)
+    url_list += get_ipo_url_list(date)
+    ipo_data_list = []
+    for urls in url_list:
+        returned_data_list = []
+        for url in urls:
+            if url:
+                returned_data_list.append(crawl_ipo_info(url))
+        ipo_data_list.append(returned_data_list)
+
+    return ipo_data_list
+
+#Not used yet
+def get_demand_forecast_band_info_list(url):
+    response = requests.get(url)
+    html = response.content.decode('utf-8', 'replace')
+    soup = BeautifulSoup(html, 'lxml')
+    demand_forecast_result_table = soup.select('table[class="view_tb"]')[1]
+    demand_forecast_info_rows = demand_forecast_result_table.find_all('tr')[2:]
+
+    price_list = []                             # 가격
+    registration_num_list = []                  # 건수
+    registration_ratio_list = []                # 건수비중
+    amount_list = []                            # 참여수량
+    amount_ratio_list = []                      # 참여수량비중
+
+    for result_row in demand_forecast_info_rows:
+        tds = result_row.find_all('td')
+        price_list.append(tds[0].text.strip())
+        registration_num_list.append(tds[1].text.strip())
+        registration_ratio_list.append(tds[2].text.strip())
+        amount_list.append(tds[3].text.strip())
+        amount_ratio_list.append(tds[4].text.strip())
+
+    return [price_list, registration_num_list, registration_ratio_list, amount_list, amount_ratio_list]
+
+def get_allocation_detail_df(allocation_ratio_table, company_name):
     allocation_ratio_table_rows = allocation_ratio_table.find_all('tr')
 
     total_share_num = allocation_ratio_table_rows[0].find_all('td')[1].text.strip().replace('\xa0', '').replace(" ", "")  # 0: 공모주식수
@@ -211,107 +326,3 @@ def get_allocation_ratio_df(allocation_ratio_table, company_name):
                                         '해외투자자(비율)': foreigner_ratio}, index=[0])
 
     return allocation_ratio_df
-
-def get_shareholder_info_df(url, company_name):
-    response = requests.get(url)
-    html = response.content.decode('utf-8', 'replace')
-    soup = BeautifulSoup(html, 'lxml')
-    table = soup.select('table[class="view_tb"]')[2]  # 유통 가능 정보 테이블
-    table_rows = table.find_all('tr')
-
-    shares_info = []
-
-    idx = -1
-    while len(shares_info) < 3:
-        tds = table_rows[idx].find_all('td')
-        idx = idx - 1
-        target_text = tds[0].text.strip().replace('\t', '').replace('\r\n', '')
-
-        if target_text in ['공모후 상장주식수', '유통가능주식합계', '보호예수물량합계']:
-            number_of_shares = int(tds[1].text.strip().replace('주', '').replace(',', ''))
-            ratio_of_shares = tds[3].text.strip().replace(' ', '')
-            shares_info.append([number_of_shares, ratio_of_shares])
-
-    shareholder_info_df = pd.DataFrame({'종목명': company_name,
-                                        '공모후 상장주식수(주식수)': shares_info[0][0],
-                                        '공모후 상장주식수(비율)': shares_info[0][1],
-                                        '유통가능주식합계(주식수)': shares_info[1][0],
-                                        '유통가능주식합계(비율)': shares_info[1][1],
-                                        '보호예수물량합계(주식수)': shares_info[2][0],
-                                        '보호예수물량합계(비율)': shares_info[2][1]}, index=[0])
-    return shareholder_info_df
-
-def get_demand_forecast_result_df(url, company_name):
-    response = requests.get(url)
-    html = response.content.decode('utf-8', 'replace')
-    soup = BeautifulSoup(html, 'lxml')
-
-    additional_info_table = soup.select('table[class="view_tb2"]')[1]
-    additional_info_rows = additional_info_table.find_all('tr')
-    del additional_info_rows[1]
-
-    competition_ratio = additional_info_rows[0].find_all('td')[1].text.strip().replace(' ', '').replace('\xa0', '')
-    commitment_ratio = additional_info_rows[1].find_all('td')[1].text.strip().replace(' ', '')
-
-    demand_forecast_df = pd.DataFrame({'종목명': company_name,
-                                       '기관경쟁률': competition_ratio,
-                                       '의무보유확약비율': commitment_ratio}, index=[0])
-    return demand_forecast_df
-
-def get_underwriter_list(url):
-    response = requests.get(url)
-    html = response.content.decode('utf-8', 'replace')
-    soup = BeautifulSoup(html, 'lxml')
-
-    underwriter_table = soup.select('table[class="view_tb"]')[3]
-    underwriter_rows = underwriter_table.find_all('tr')[1:]
-
-    # 주간사 별 배정수량
-    underwriter_list = []
-
-    for underwriter_row in underwriter_rows:
-        underwriter_list.append(underwriter_row.find_all('td')[0].text.strip().replace(" ", "") + '(' + underwriter_row.find_all('td')[1].text.strip().replace(" ", "") + ')')
-
-    return underwriter_list
-
-def get_demand_forecast_band_info_df(url, company_name):
-    response = requests.get(url)
-    html = response.content.decode('utf-8', 'replace')
-    soup = BeautifulSoup(html, 'lxml')
-    demand_forecast_result_table = soup.select('table[class="view_tb"]')[1]
-    demand_forecast_info_rows = demand_forecast_result_table.find_all('tr')[2:]
-
-    price_list = []
-    registration_num_list = []
-    registration_ratio_list = []
-    amount_list = []
-    amount_ratio_list = []
-
-    for result_row in demand_forecast_info_rows:
-        tds = result_row.find_all('td')
-        price_list.append(tds[0].text.strip())
-        registration_num_list.append(tds[1].text.strip())
-        registration_ratio_list.append(tds[2].text.strip())
-        amount_list.append(tds[3].text.strip())
-        amount_ratio_list.append(tds[4].text.strip())
-
-    demand_forecast_band_info_df = pd.DataFrame({'종목명': [company_name] * len(price_list),
-                                                 '가격': price_list,
-                                                 '건수': registration_num_list,
-                                                 '건수비중': registration_ratio_list,
-                                                 '참여수량': amount_list,
-                                                 '참여수량비중': amount_ratio_list, })
-    return demand_forecast_band_info_df
-
-def get_ipo_data_list(date):
-    url_list = get_bidding_url_list(date)
-    url_list += get_ipo_url_list(date)
-    ipo_data_list = []
-    for urls in url_list:
-        returned_data_list = []
-        for url in urls:
-            if url:
-                returned_data_list.append(crawl_ipo_info(url))
-        ipo_data_list.append(returned_data_list)
-
-    return ipo_data_list
