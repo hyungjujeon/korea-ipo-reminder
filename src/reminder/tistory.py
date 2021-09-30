@@ -131,10 +131,11 @@ def get_category_id():
 
         return category_dic
 
-def get_bid_parameter(ipo_data_list):
-    today = datetime.now()
+def get_bid_parameter(ipo_data_list, target_date):
+    weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
+    today = target_date
 
-    title = f'💰{today.year}년 {today.month}월 {today.day}일 청약 정보💰'
+    title = f'💰{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]} 청약 정보💰'
     tag_list = ['공모주', '공모주알리미', '공모주투자', '청약정보']
     category = get_category_id()['BID']
 
@@ -143,7 +144,6 @@ def get_bid_parameter(ipo_data_list):
         if ipo_data:
             day_info = ''
             if idx == 0:
-                tomorrow = today + timedelta(days=1)
                 day_info = f'📢오늘({today.month}/{today.day}) 청약 마감 : '
             elif idx == 1:
                 if len(contents) != 0:
@@ -152,59 +152,69 @@ def get_bid_parameter(ipo_data_list):
             else:
                 if len(contents) != 0:
                     contents.append('<hr contenteditable="false" data-ke-type="horizontalRule" data-ke-style="style2">')
+                tomorrow = today + timedelta(days=1)
                 day_info = f'📋내일({tomorrow.month}/{tomorrow.day}) 청약 시작 : '
 
-            try:
-                for data in ipo_data:
-                    data = data.values.tolist()[0]
-                    company_name = data[cd.IpoData.COMPANY_NAME]
-                    bidding_start = data[cd.IpoData.BIDDING_START]
-                    bidding_finish = data[cd.IpoData.BIDDING_FINISH]
-                    refund_date = data[cd.IpoData.REFUND_DATE]
-                    ipo_date = data[cd.IpoData.IPO_DATE]
-                    ipo_date = ipo_date if ipo_date else "미정"
-                    band_price_low = data[cd.IpoData.BAND_PRICE_LOW]
-                    band_price_high = data[cd.IpoData.BAND_PRICE_HIGH]
-                    offering_price = data[cd.IpoData.OFFERING_PRICE]
-                    offering_amount = data[cd.IpoData.OFFERING_AMOUNT]
-                    sale_available_share_num = data[cd.IpoData.SALE_AVAILABLE_SHARE_NUM]
-                    sale_available_share_ratio = data[cd.IpoData.SALE_AVAILABLE_SHARE_RATIO]
-                    sale_available_amount = int(int(offering_price.replace(',', '')) * sale_available_share_num // 100000000)
-                    competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
-                    commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
-                    underwriter = data[cd.IpoData.UNDERWRITER]
-                    minimum_bidding_price = int(offering_price.replace(',', '')) * 5
+            for data in ipo_data:
+                company_name = data[cd.IpoData.COMPANY_NAME]
 
-                    tag_list.append(company_name)
-                    content = '<div class="article-view"><div class="tt_article_useless_p_margin contents_style">'
-                    content += '<h3><b>' + day_info + str(company_name) + '</b></h3>'
-                    content += '<p data-ke-size="size14" style="margin: 0"><b>' + f'💡균등 최소 청약증거금(10주) : ' + format(minimum_bidding_price, ',d') + '원</b></p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'📅공모 일정 : {bidding_start}~{bidding_finish}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'📅상장일 : {ipo_date}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'📅환불일 : {refund_date}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰희망공모가 : {band_price_low}~{band_price_high}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰확정공모가 : {offering_price}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰공모규모 : {offering_amount}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰유통가능 금액(예상) : ' + format(sale_available_amount, ',d') + '억</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🧾유통가능 주식 비율(예상) : {sale_available_share_ratio}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🏢수요예측 기관 경쟁률 : {competition_ratio}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🏢의무보유 확약 비율(예상) : {commitment_ratio}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🚩주간사 : {underwriter}' + '</p>'
-                    content += '<p>&nbsp;</p>' * 2
-                    content += '</div></div>'
-                    contents.append(content)
-            except:
-                pass
+                bidding_start = data[cd.IpoData.BIDDING_START]
+                bidding_finish = data[cd.IpoData.BIDDING_FINISH]
+                refund_date = data[cd.IpoData.REFUND_DATE]
+                ipo_date = data[cd.IpoData.IPO_DATE]
+
+                bidding_start += weekdays[datetime.strptime(bidding_start, "%Y.%m.%d").weekday()]
+                bidding_finish += weekdays[datetime.strptime(bidding_finish, "%Y.%m.%d").weekday()]
+                refund_date += weekdays[datetime.strptime(refund_date, "%Y.%m.%d").weekday()]
+                ipo_date += weekdays[datetime.strptime(ipo_date, "%Y.%m.%d").weekday()] if ipo_date else "미정"
+
+                band_price_low = data[cd.IpoData.BAND_PRICE_LOW]
+                band_price_high = data[cd.IpoData.BAND_PRICE_HIGH]
+                offering_price = data[cd.IpoData.OFFERING_PRICE]
+                offering_amount = data[cd.IpoData.OFFERING_AMOUNT]
+                sale_available_share_num = data[cd.IpoData.SALE_AVAILABLE_SHARE_NUM]
+                sale_available_share_ratio = data[cd.IpoData.SALE_AVAILABLE_SHARE_RATIO]
+                sale_available_amount = int(offering_price * sale_available_share_num // 100000000)
+                competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
+                commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
+                underwriter = data[cd.IpoData.UNDERWRITER]
+                allocated_share_list = data[cd.IpoData.ALLOCATED_SHARE_NUM]
+                underwriter_info = [(x[0] + '(' + format(x[1], ',d') + '주)') for x in list(zip(underwriter, allocated_share_list))]
+                underwriter_info = ', '.join(underwriter_info)
+
+                minimum_bidding_price = offering_price * 5
+
+                tag_list.append(company_name)
+                p_tag_style = '<p data-ke-size="size14" style="margin: 0">'
+
+                content = '<div class="article-view"><div class="tt_article_useless_p_margin contents_style">'
+                content += '<h3><b>' + day_info + str(company_name) + '</b></h3>'
+                content += p_tag_style + '<b>' + f'💡균등 최소 청약증거금(10주) : ' + format(minimum_bidding_price, ',d') + '원</b></p>'
+                content += p_tag_style + f'📅공모 일정 : {bidding_start} ~ {bidding_finish}' + '</p>'
+                content += p_tag_style + f'📅상장일 : {ipo_date}' + '</p>'
+                content += p_tag_style + f'📅환불일 : {refund_date}' + '</p>'
+                content += p_tag_style + f'💰희망공모가 : ' + format(band_price_low, ",d") + '원 ~ ' + format(band_price_high, ",d") + '원</p>'
+                content += p_tag_style + f'💰확정공모가 : ' + format(band_price_low, ",d") + '원</p>'
+                content += p_tag_style + f'💰공모규모 : ' + format(offering_amount, ',d') + '억</p>'
+                content += p_tag_style + f'💰유통가능 금액(예상) : ' + format(sale_available_amount, ',d') + '억</p>'
+                content += p_tag_style + f'🧾유통가능 주식 비율(예상) : {sale_available_share_ratio}' + '%</p>'
+                content += p_tag_style + f'🏢수요예측 기관 경쟁률 : ' + format(int(competition_ratio), ',d') + ': 1</p>'
+                content += p_tag_style + f'🏢의무보유 확약 비율(예상) : {commitment_ratio}' + '%</p>'
+                content += p_tag_style + f'🚩주간사 : ' + underwriter_info + '</p>'
+                content += '<p>&nbsp;</p>' * 2
+                content += '</div></div>'
+                contents.append(content)
 
     tag = ', '.join(tag_list)
     contents = ''.join(contents)
 
     return [title, category, tag, contents]
 
-def get_ipo_parameter(ipo_data_list):
-    today = datetime.now()
+def get_ipo_parameter(ipo_data_list, target_date):
+    weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
+    today = target_date
 
-    title = f'💰{today.year}년 {today.month}월 {today.day}일 상장 정보💰'
+    title = f'💰{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]} 상장 정보💰'
     tag_list = ['공모주', '공모주알리미', '공모주투자', '상장정보']
     category = get_category_id()['IPO']
 
@@ -213,41 +223,44 @@ def get_ipo_parameter(ipo_data_list):
         if ipo_data:
             day_info = ''
             if idx == 0:
-                tomorrow = today + timedelta(days=1)
                 day_info = f'🔔오늘({today.month}/{today.day}) 상장 : '
             else:
                 if len(contents) != 0:
                     contents.append('<hr contenteditable="false" data-ke-type="horizontalRule" data-ke-style="style2">')
+                tomorrow = today + timedelta(days=1)
                 day_info = f'📋내일 상장({tomorrow.month}/{tomorrow.day}) : '
 
             try:
                 for data in ipo_data:
-                    data = data.values.tolist()[0]
                     company_name = data[cd.IpoData.COMPANY_NAME]
+
                     ipo_date = data[cd.IpoData.IPO_DATE]
-                    ipo_date = ipo_date if ipo_date else "미정"
+                    ipo_date += weekdays[datetime.strptime(ipo_date, "%Y.%m.%d").weekday()] if ipo_date else "미정"
+
                     band_price_low = data[cd.IpoData.BAND_PRICE_LOW]
                     band_price_high = data[cd.IpoData.BAND_PRICE_HIGH]
                     offering_price = data[cd.IpoData.OFFERING_PRICE]
                     offering_amount = data[cd.IpoData.OFFERING_AMOUNT]
                     sale_available_share_num = data[cd.IpoData.SALE_AVAILABLE_SHARE_NUM]
                     sale_available_share_ratio = data[cd.IpoData.SALE_AVAILABLE_SHARE_RATIO]
-                    sale_available_amount = int(int(offering_price.replace(',', '')) * sale_available_share_num // 100000000)
+                    sale_available_amount = int(offering_price * sale_available_share_num // 100000000)
                     competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
                     commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
 
                     tag_list.append(company_name)
+                    p_tag_style = '<p data-ke-size="size14" style="margin: 0">'
+
                     content = '<div class="article-view"><div class="tt_article_useless_p_margin contents_style">'
                     content += '<h3><b>' + day_info + str(company_name) + '</b></h3>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'📅상장일 : {ipo_date}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰희망공모가 : {band_price_low}~{band_price_high}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰확정공모가 : {offering_price}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰공모규모 : {offering_amount}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'💰유통가능 금액(확정) : ' + format(sale_available_amount, ',d') + '억</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🧾유통가능 주식 수(확정) : ' + format(sale_available_share_num, ',d') + '주</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🧾유통가능 주식 비율(확정) : {sale_available_share_ratio}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🏢수요예측 기관 경쟁률 : {competition_ratio}' + '</p>'
-                    content += '<p data-ke-size="size14" style="margin: 0">' + f'🏢의무보유 확약 비율(확정) : {commitment_ratio}' + '</p>'
+                    content += p_tag_style + f'📅상장일 : {ipo_date}' + '</p>'
+                    content += p_tag_style + f'💰희망공모가 : ' + format(band_price_low, ",d") + '원 ~ ' + format(band_price_high, ",d") + '원</p>'
+                    content += p_tag_style + f'💰확정공모가 : ' + format(band_price_low, ",d") + '원</p>'
+                    content += p_tag_style + f'💰공모규모 : ' + format(offering_amount, ',d') + '억</p>'
+                    content += p_tag_style + f'💰유통가능 금액(확정) : ' + format(sale_available_amount, ',d') + '억</p>'
+                    content += p_tag_style + f'🧾유통가능 주식 수(확정) : ' + format(sale_available_share_num, ',d') + '주</p>'
+                    content += p_tag_style + f'🧾유통가능 주식 비율(확정) : {sale_available_share_ratio}' + '%</p>'
+                    content += p_tag_style + f'🏢수요예측 기관 경쟁률 : ' + format(int(competition_ratio), ',d') + ': 1</p>'
+                    content += p_tag_style + f'🏢의무보유 확약 비율(확정) : {commitment_ratio}' + '%</p>'
                     content += '<p>&nbsp;</p>' * 2
                     content += '</div></div>'
                     contents.append(content)
@@ -259,15 +272,21 @@ def get_ipo_parameter(ipo_data_list):
 
     return [title, category, tag, contents]
 
-def write_new_post(ipo_data_list):
+def write_new_post(ipo_data_list, target_date):
     access_token = get_access_token()
     url = 'https://www.tistory.com/apis/post/write'
 
     param_list = []
     if len(ipo_data_list) > 2:
-        param_list = get_bid_parameter(ipo_data_list)
+        if len(ipo_data_list[0]) + len(ipo_data_list[1]) + len(ipo_data_list[2]) == 0:
+            return
+        else:
+            param_list = get_bid_parameter(ipo_data_list, target_date)
     else:
-        param_list = get_ipo_parameter(ipo_data_list)
+        if len(ipo_data_list[0]) + len(ipo_data_list[1]) == 0:
+            return
+        else:
+            param_list = get_ipo_parameter(ipo_data_list, target_date)
 
     contents = param_list.pop()
     tag = param_list.pop()

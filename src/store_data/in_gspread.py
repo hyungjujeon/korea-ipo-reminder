@@ -23,12 +23,9 @@ def get_google_spreadsheet(sheet_name):
 
 def convert_data_format(row_data):
     weekdays = {0: ' (월)', 1: ' (화)', 2: ' (수)', 3: ' (목)', 4: ' (금)', 5: ' (토)', 6: ' (일)'}
-    row_data[cd.IpoData.BIDDING_START] += weekdays[
-        datetime.strptime(row_data[cd.IpoData.BIDDING_START], "%Y.%m.%d").weekday()]
-    row_data[cd.IpoData.BIDDING_FINISH] += weekdays[
-        datetime.strptime(row_data[cd.IpoData.BIDDING_FINISH], "%Y.%m.%d").weekday()]
-    row_data[cd.IpoData.REFUND_DATE] += weekdays[
-        datetime.strptime(row_data[cd.IpoData.REFUND_DATE], "%Y.%m.%d").weekday()]
+    row_data[cd.IpoData.BIDDING_START] += weekdays[datetime.strptime(row_data[cd.IpoData.BIDDING_START], "%Y.%m.%d").weekday()]
+    row_data[cd.IpoData.BIDDING_FINISH] += weekdays[datetime.strptime(row_data[cd.IpoData.BIDDING_FINISH], "%Y.%m.%d").weekday()]
+    row_data[cd.IpoData.REFUND_DATE] += weekdays[datetime.strptime(row_data[cd.IpoData.REFUND_DATE], "%Y.%m.%d").weekday()]
     row_data[cd.IpoData.IPO_DATE] += weekdays[datetime.strptime(row_data[cd.IpoData.IPO_DATE], "%Y.%m.%d").weekday()]
 
     row_data[cd.IpoData.UNDERWRITER] = ', '.join(row_data[cd.IpoData.UNDERWRITER])

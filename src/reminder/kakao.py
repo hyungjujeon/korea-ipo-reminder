@@ -2,7 +2,6 @@ import time
 import requests
 import json
 import yaml
-from datetime import datetime
 import src.column_description as cd
 
 def create_token(code):
@@ -60,11 +59,12 @@ def print_hello_world():
     else:
         print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
 
-def get_bid_contents(ipo_data_list):
-    today = datetime.now()
+def get_bid_contents(ipo_data_list, target_date):
+    weekdays = {0: ' (월)', 1: ' (화)', 2: ' (수)', 3: ' (목)', 4: ' (금)', 5: ' (토)', 6: ' (일)'}
+    today = target_date
 
     contents = f'📢청약정보📢\n'
-    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일🗓\n'
+    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]}🗓\n'
 
     for idx, ipo_data in enumerate(ipo_data_list):
         if ipo_data:
@@ -75,21 +75,21 @@ def get_bid_contents(ipo_data_list):
             elif idx == 2:
                 contents += '\n🔥내일 청약 예정 종목'
             for data in ipo_data:
-                data = data.values.tolist()[0]
                 company_name = data[cd.IpoData.COMPANY_NAME]
                 offering_price = data[cd.IpoData.OFFERING_PRICE]
 
-                contents += '\n  📊 ' + company_name + f'(공모가: {offering_price})'
+                contents += '\n  📊 ' + company_name + f'(공모가: '+ format(offering_price, ',d') +')'
 
             contents += '\n'
 
     return contents
 
-def get_ipo_contents(ipo_data_list):
-    today = datetime.now()
+def get_ipo_contents(ipo_data_list, target_date):
+    weekdays = {0: ' (월)', 1: ' (화)', 2: ' (수)', 3: ' (목)', 4: ' (금)', 5: ' (토)', 6: ' (일)'}
+    today = target_date
 
     contents = f'📢상장정보📢\n'
-    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일🗓\n'
+    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]}🗓\n'
 
     for idx, ipo_data in enumerate(ipo_data_list):
         if ipo_data:
@@ -98,28 +98,27 @@ def get_ipo_contents(ipo_data_list):
             elif idx == 1:
                 contents += '\n🔥내일 상장 종목'
             for data in ipo_data:
-                data = data.values.tolist()[0]
                 company_name = data[cd.IpoData.COMPANY_NAME]
                 offering_price = data[cd.IpoData.OFFERING_PRICE]
 
-                contents += '\n  📊 ' + company_name + f'(공모가: {offering_price})'
+                contents += '\n  📊 ' + company_name + f'(공모가: '+ format(offering_price, ',d') +')'
 
             contents += '\n'
 
     return contents
 
-def alarm_text_message(ipo_data_list, post_id):
+def alarm_text_message(ipo_data_list, post_id, target_date):
     contents = ''
     if len(ipo_data_list) > 2:
         if len(ipo_data_list[0]) + len(ipo_data_list[1]) + len(ipo_data_list[2]) == 0:
             return
         else:
-            contents = get_bid_contents(ipo_data_list)
+            contents = get_bid_contents(ipo_data_list, target_date)
     else:
         if len(ipo_data_list[0]) + len(ipo_data_list[1]) == 0:
             return
         else:
-            contents = get_ipo_contents(ipo_data_list)
+            contents = get_ipo_contents(ipo_data_list, target_date)
 
     refresh_token()
 
@@ -163,7 +162,7 @@ def send_template_message():
 def get_header_title_text(index):
     header_title_dict = {
         0 : '<내일 청약 예정 종목>',
-        1  : '<오늘 청약 시작 종목>',
+        1 : '<오늘 청약 시작 종목>',
         2 : '<오늘 청약 마감 종목>',
         3 : '<내일 상장 예정 종목>',
         4 : '<오늘 상장 종목>'

@@ -61,7 +61,7 @@ def get_ipo_url_list(target_date):
                 elif date_diff_ipo_start == 0:
                     ipo_d_day_url_list.append(url)
 
-    return [ipo_before_day_url_list, ipo_d_day_url_list]
+    return [ipo_d_day_url_list, ipo_before_day_url_list]
 
 def get_bidding_url_list(target_date):
     year = target_date.year
@@ -114,7 +114,7 @@ def get_bidding_url_list(target_date):
                 else:
                     break
 
-    return [bidding_before_day_url_list, bidding_start_url_list, bidding_finish_url_list]
+    return [bidding_finish_url_list, bidding_start_url_list, bidding_before_day_url_list]
 
 def crawl_ipo_info(url):
     url_list = []
