@@ -181,8 +181,10 @@ def get_bid_parameter(ipo_data_list, target_date):
                 allocated_share_list = data[cd.IpoData.ALLOCATED_SHARE_NUM]
                 underwriter_info = [(x[0] + '(' + format(x[1], ',d') + '주)') for x in list(zip(underwriter, allocated_share_list))]
                 underwriter_info = ', '.join(underwriter_info)
-
-                minimum_bidding_price = offering_price * 5
+                if '스팩' in company_name:
+                    minimum_bidding_price = offering_price * 10
+                else:
+                    minimum_bidding_price = offering_price * 5
 
                 tag_list.append(company_name)
                 p_tag_style = '<p data-ke-size="size14" style="margin: 0">'
