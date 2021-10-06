@@ -29,6 +29,30 @@ def get_bot_id_html():
     else:
         print('id 받아오기 실패' + str(response.json()))
 
+def get_chat_id_html():
+    url = 'https://api.telegram.org/bot' + get_telegram_api_key() + '/getUpdates'
+
+    response = requests.get(url, params='')
+    if response.json()['ok'] == True:
+        print('chat id 받아오기 성공')
+        result = response.json()
+    else:
+        print('chat id 받아오기 실패' + str(response.json()))
+
+def get_chat_id():
+    with open('../config.yaml') as f:
+        KEY_INFO = yaml.load(f, Loader=yaml.FullLoader)
+        chat_id = KEY_INFO['TELEGRAM_CHAT_ID']
+
+    return chat_id
+
+def get_test_chat_id():
+    with open('../config.yaml') as f:
+        KEY_INFO = yaml.load(f, Loader=yaml.FullLoader)
+        test_chat_id = KEY_INFO['TELEGRAM_TEST_CHAT_ID']
+
+    return test_chat_id
+
 def get_bid_parameter(ipo_data_list, target_date):
     weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
     today = target_date
@@ -171,7 +195,7 @@ def send_message_for_test(ipo_data_list, post_id, target_date):
 
     bot_token = get_telegram_api_key()
     bot = telegram.Bot(token=bot_token)
-    chat_id = bot.getUpdates()[-1]['my_chat_member']['chat']['id']
+    chat_id = get_test_chat_id()
 
     text = param_list
     text += '자세히 보기(블로그) : https://hzoo.tistory.com/' + str(post_id)
@@ -191,7 +215,7 @@ def send_message(ipo_data_list, post_id, target_date):
 
     bot_token = get_telegram_api_key()
     bot = telegram.Bot(token=bot_token)
-    chat_id = bot.getUpdates()[1]['my_chat_member']['chat']['id']
+    chat_id = get_chat_id()
 
     text = param_list
     text += '자세히 보기(블로그) : https://hzoo.tistory.com/' + str(post_id)
