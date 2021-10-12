@@ -274,7 +274,7 @@ def get_ipo_parameter(ipo_data_list, target_date):
 
     return [title, category, tag, contents]
 
-def write_new_post(ipo_data_list, target_date):
+def write_new_post(ipo_data_list, target_date, post_type):
     access_token = get_access_token()
     url = 'https://www.tistory.com/apis/post/write'
 
@@ -301,7 +301,7 @@ def write_new_post(ipo_data_list, target_date):
         'blogName': 'hzoo',
         'title': title,
         'content': contents,
-        'visibility': '3',
+        'visibility': '3' if post_type=='main' else '0',
         'category': category,
         'tag': tag,
         'acceptComment': AcceptCommentStatus.ALLOWANCE
