@@ -1,15 +1,8 @@
-import yaml
+import os
 import telegram
 import requests
 import src.column_description as cd
 from datetime import datetime, timedelta
-
-def get_telegram_api_key():
-    with open('../config.yaml') as f:
-        KEY_INFO = yaml.load(f, Loader=yaml.FullLoader)
-        telegram_key = KEY_INFO['TELEGRAM_KEY']
-
-    return telegram_key
 
 def get_bot_id(bot):
     me = bot.getMe()
@@ -18,7 +11,8 @@ def get_bot_id(bot):
     return bot_id
 
 def get_bot_id_html():
-    url = 'https://api.telegram.org/bot' + get_telegram_api_key() + '/getMe'
+    telegram_key = os.environ.get('TELEGRAM_KEY')
+    url = 'https://api.telegram.org/bot' + telegram_key + '/getMe'
 
     response = requests.get(url, params='')
     if response.json()['ok'] == True:
@@ -30,7 +24,8 @@ def get_bot_id_html():
         print('id 받아오기 실패' + str(response.json()))
 
 def get_chat_id_html():
-    url = 'https://api.telegram.org/bot' + get_telegram_api_key() + '/getUpdates'
+    telegram_key = os.environ.get('TELEGRAM_KEY')
+    url = 'https://api.telegram.org/bot' + telegram_key + '/getUpdates'
 
     response = requests.get(url, params='')
     if response.json()['ok'] == True:
@@ -38,20 +33,6 @@ def get_chat_id_html():
         result = response.json()
     else:
         print('chat id 받아오기 실패' + str(response.json()))
-
-def get_chat_id():
-    with open('../config.yaml') as f:
-        KEY_INFO = yaml.load(f, Loader=yaml.FullLoader)
-        chat_id = KEY_INFO['TELEGRAM_CHAT_ID']
-
-    return chat_id
-
-def get_test_chat_id():
-    with open('../config.yaml') as f:
-        KEY_INFO = yaml.load(f, Loader=yaml.FullLoader)
-        test_chat_id = KEY_INFO['TELEGRAM_TEST_CHAT_ID']
-
-    return test_chat_id
 
 def get_bid_parameter(ipo_data_list, target_date):
     weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
@@ -193,9 +174,9 @@ def send_message_for_test(ipo_data_list, post_id, target_date):
         else:
             param_list = get_ipo_parameter(ipo_data_list, target_date)
 
-    bot_token = get_telegram_api_key()
+    bot_token = os.environ.get('TELEGRAM_KEY')
     bot = telegram.Bot(token=bot_token)
-    chat_id = get_test_chat_id()
+    chat_id = os.environ.get('TELEGRAM_TEST_CHAT_ID')
 
     text = param_list
     text += '자세히 보기(블로그) : https://hzoo.tistory.com/' + str(post_id)
@@ -213,9 +194,9 @@ def send_message(ipo_data_list, post_id, target_date):
         else:
             param_list = get_ipo_parameter(ipo_data_list, target_date)
 
-    bot_token = get_telegram_api_key()
+    bot_token = os.environ.get('TELEGRAM_KEY')
     bot = telegram.Bot(token=bot_token)
-    chat_id = get_chat_id()
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
 
     text = param_list
     text += '자세히 보기(블로그) : https://hzoo.tistory.com/' + str(post_id)

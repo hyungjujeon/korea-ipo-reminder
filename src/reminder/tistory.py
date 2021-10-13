@@ -6,17 +6,16 @@ from selenium import webdriver
 from enum import IntEnum
 from datetime import datetime, timedelta
 import src.column_description as cd
+import os
 
 class AcceptCommentStatus(IntEnum):
     ALLOWANCE = 1
     DISALLOWANCE = 0
 
 def get_authorization_code():
-    with open('../config.yaml') as f:
-        TISTORY_INFO = yaml.load(f, Loader=yaml.FullLoader)
-        CLIENT_ID = TISTORY_INFO['TISTORY_API_ID']
-        KAKAO_ID = TISTORY_INFO['KAKAO_ID']
-        KAKAO_PW = TISTORY_INFO['KAKAO_PW']
+    CLIENT_ID = os.environ.get('TISTORY_API_ID')
+    KAKAO_ID = os.environ.get('KAKAO_ID')
+    KAKAO_PW = os.environ.get('KAKAO_PW')
 
     callback_url = 'https://hzoo.tistory.com/'
     oauth_url = 'https://www.tistory.com/oauth/authorize?client_id=' + CLIENT_ID + '&redirect_uri=' + callback_url + '&response_type=code'
@@ -42,19 +41,14 @@ def get_authorization_code():
 
 def get_access_token():
     try:
-        with open('json/tistory_token.json', 'r') as f:
-            json_data = json.load(f)
-
-        access_token = json_data['access_token']
+        access_token = os.environ.get('TISTORY_ACCESS_TOKEN')
         return access_token
 
     except:
         auth_code = get_authorization_code()
 
-        with open('../config.yaml') as f:
-            TISTORY_INFO = yaml.load(f, Loader=yaml.FullLoader)
-            CLIENT_ID = TISTORY_INFO['TISTORY_API_ID']
-            CLIENT_PW = TISTORY_INFO['TISTORY_API_SECRET_KEY']
+        CLIENT_ID = os.environ.get('TISTORY_API_ID')
+        CLIENT_PW = os.environ.get('TISTORY_API_SECRET_KEY')
 
         url = 'https://www.tistory.com/oauth/access_token'
         data = {
@@ -98,10 +92,11 @@ def get_post_list():
 
 def get_category_id():
     try:
-        with open('json/tistory_category.json', 'r') as f:
-            category_dic = json.load(f)
+        TISTORY_CATEGORY_IPO = str(os.environ.get('TISTORY_CATEGORY_IPO'))
+        TISTORY_CATEGORY_BID = str(os.environ.get('TISTORY_CATEGORY_BID'))
+        category_dic = {'IPO': TISTORY_CATEGORY_IPO, 'BID': TISTORY_CATEGORY_BID}
 
-            return category_dic
+        return category_dic
 
     except:
         access_token = get_access_token()
