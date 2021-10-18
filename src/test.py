@@ -6,14 +6,11 @@ import reminder.telegram_bot as telegram_bot
 
 if __name__ == '__main__':
     today = datetime.utcnow() + timedelta(hours=9)
-    if today.weekday() != 5: #토요일 제외
-        ipo_data_list = crawler_ipostock.get_ipo_data_list(today)
-        now = datetime.utcnow()
-        print(now)
-        print(platform.platform())
+    tomorrow = today + timedelta(days=1)
+    if tomorrow.weekday() != 5: #토요일 제외
+        ipo_data_list = crawler_ipostock.get_ipo_data_list(tomorrow)
 
         print('테스트 메세지 입니다.')
-        tomorrow = today + timedelta(days=1)
         bid_post_id = tistory.write_new_post(ipo_data_list[:3], tomorrow, 'test')
         ipo_post_id = tistory.write_new_post(ipo_data_list[3:], tomorrow, 'test')
 
