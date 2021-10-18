@@ -49,29 +49,34 @@ def get_authorization_code():
     return authorization_code
 
 def get_access_token():
-    auth_code = get_authorization_code()
+    try:
+        access_token = os.environ.get('TISTORY_ACCESS_TOKEN')
+        return access_token
 
-    CLIENT_ID = os.environ.get('TISTORY_API_ID')
-    CLIENT_PW = os.environ.get('TISTORY_API_SECRET_KEY')
+    except:
+        auth_code = get_authorization_code()
 
-    url = 'https://www.tistory.com/oauth/access_token'
-    data = {
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_PW,
-        'redirect_uri': 'https://hzoo.tistory.com/',
-        'code': auth_code,
-        'grant_type': 'authorization_code'
-    }
-    response = requests.get(url, params=data)
-    access_token = response.text.split('=')[1]
+        CLIENT_ID = os.environ.get('TISTORY_API_ID')
+        CLIENT_PW = os.environ.get('TISTORY_API_SECRET_KEY')
 
-    access_token_dic = {}
-    access_token_dic['access_token'] = access_token
+        url = 'https://www.tistory.com/oauth/access_token'
+        data = {
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_PW,
+            'redirect_uri': 'https://hzoo.tistory.com/',
+            'code': auth_code,
+            'grant_type': 'authorization_code'
+        }
+        response = requests.get(url, params=data)
+        access_token = response.text.split('=')[1]
 
-    with open('json/tistory_token.json', 'w') as json_file:
-        json.dump(access_token_dic, json_file)
+        access_token_dic = {}
+        access_token_dic['access_token'] = access_token
 
-    return access_token
+        with open('json/tistory_token.json', 'w') as json_file:
+            json.dump(access_token_dic, json_file)
+
+        return access_token
 
 def get_post_list():
     access_token = get_access_token()
