@@ -19,7 +19,15 @@ def get_authorization_code():
 
     callback_url = 'https://hzoo.tistory.com/'
     oauth_url = 'https://www.tistory.com/oauth/authorize?client_id=' + CLIENT_ID + '&redirect_uri=' + callback_url + '&response_type=code'
-    driver = webdriver.Chrome('../../chromedriver.exe')
+
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+
+    chrome_options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+
+    driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), chrome_options=chrome_options)
     driver.implicitly_wait(3)
 
     driver.get(oauth_url)
