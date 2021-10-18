@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-import time
+import platform
 import crawler.from_ipostock as crawler_ipostock
 import reminder.tistory as tistory
 import reminder.telegram_bot as telegram_bot
@@ -10,14 +10,7 @@ if __name__ == '__main__':
         ipo_data_list = crawler_ipostock.get_ipo_data_list(today)
         now = datetime.utcnow()
         print(now)
-
-        while (now.minute % 10) != 9:
-            time.sleep(60)
-            now = datetime.utcnow()
-
-        while (now.minute % 10) != 0:
-            time.sleep(1)
-            now = datetime.utcnow()
+        print(platform.platform())
 
         print('테스트 메세지 입니다.')
         tomorrow = today + timedelta(days=1)
