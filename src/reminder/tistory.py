@@ -19,7 +19,7 @@ def get_authorization_code():
 
     callback_url = 'https://hzoo.tistory.com/'
     oauth_url = 'https://www.tistory.com/oauth/authorize?client_id=' + CLIENT_ID + '&redirect_uri=' + callback_url + '&response_type=code'
-    driver = webdriver.Chrome('../../chromedriver')
+    driver = webdriver.Chrome('../../chromedriver.exe')
     driver.implicitly_wait(3)
 
     driver.get(oauth_url)
@@ -40,34 +40,29 @@ def get_authorization_code():
     return authorization_code
 
 def get_access_token():
-    try:
-        access_token = os.environ.get('TISTORY_ACCESS_TOKEN')
-        return access_token
+    auth_code = get_authorization_code()
 
-    except:
-        auth_code = get_authorization_code()
+    CLIENT_ID = os.environ.get('TISTORY_API_ID')
+    CLIENT_PW = os.environ.get('TISTORY_API_SECRET_KEY')
 
-        CLIENT_ID = os.environ.get('TISTORY_API_ID')
-        CLIENT_PW = os.environ.get('TISTORY_API_SECRET_KEY')
+    url = 'https://www.tistory.com/oauth/access_token'
+    data = {
+        'client_id': CLIENT_ID,
+        'client_secret': CLIENT_PW,
+        'redirect_uri': 'https://hzoo.tistory.com/',
+        'code': auth_code,
+        'grant_type': 'authorization_code'
+    }
+    response = requests.get(url, params=data)
+    access_token = response.text.split('=')[1]
 
-        url = 'https://www.tistory.com/oauth/access_token'
-        data = {
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_PW,
-            'redirect_uri': 'https://hzoo.tistory.com/',
-            'code': auth_code,
-            'grant_type': 'authorization_code'
-        }
-        response = requests.get(url, params=data)
-        access_token = response.text.split('=')[1]
+    access_token_dic = {}
+    access_token_dic['access_token'] = access_token
 
-        access_token_dic = {}
-        access_token_dic['access_token'] = access_token
+    with open('json/tistory_token.json', 'w') as json_file:
+        json.dump(access_token_dic, json_file)
 
-        with open('json/tistory_token.json', 'w') as json_file:
-            json.dump(access_token_dic, json_file)
-
-        return access_token
+    return access_token
 
 def get_post_list():
     access_token = get_access_token()

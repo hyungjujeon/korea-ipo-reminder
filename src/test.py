@@ -19,9 +19,10 @@ if __name__ == '__main__':
             time.sleep(1)
             now = datetime.utcnow()
 
-        print('본 메세지 입니다.')
-        bid_post_id = tistory.write_new_post(ipo_data_list[:3], today, 'main')
-        ipo_post_id = tistory.write_new_post(ipo_data_list[3:], today, 'main')
+        print('테스트 메세지 입니다.')
+        tomorrow = today + timedelta(days=1)
+        bid_post_id = tistory.write_new_post(ipo_data_list[:3], tomorrow, 'test')
+        ipo_post_id = tistory.write_new_post(ipo_data_list[3:], tomorrow, 'test')
 
-        telegram_bot.send_message(ipo_data_list[:3], bid_post_id, today)
-        telegram_bot.send_message(ipo_data_list[3:], ipo_post_id, today)
+        telegram_bot.send_message_for_test(ipo_data_list[:3], bid_post_id, tomorrow)
+        telegram_bot.send_message_for_test(ipo_data_list[3:], ipo_post_id, tomorrow)
