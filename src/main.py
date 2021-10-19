@@ -9,6 +9,7 @@ if __name__ == '__main__':
     if today.weekday() != 5: #토요일 제외
         ipo_data_list = crawler_ipostock.get_ipo_data_list(today)
 
+        now = datetime.utcnow()
         while (now.minute % 10) != 9:
             time.sleep(60)
             now = datetime.utcnow()
