@@ -42,7 +42,7 @@ def get_bid_parameter(ipo_data_list, target_date):
 
     contents = []
     for idx, ipo_data in enumerate(ipo_data_list):
-        if ipo_data:
+        if ipo_data[0]:
             day_info = ''
             if idx == 0:
                 day_info = f'📢오늘({today.month}/{today.day}) 청약 마감 : '
@@ -116,7 +116,7 @@ def get_ipo_parameter(ipo_data_list, target_date):
 
     contents = []
     for idx, ipo_data in enumerate(ipo_data_list):
-        if ipo_data:
+        if ipo_data[0]:
             day_info = ''
             if idx == 0:
                 day_info = f'🔔오늘({today.month}/{today.day}) 상장 : '
