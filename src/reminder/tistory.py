@@ -6,6 +6,7 @@ from selenium import webdriver
 from enum import IntEnum
 from datetime import datetime, timedelta
 import src.column_description as cd
+import src.utils as utils
 import os
 
 class AcceptCommentStatus(IntEnum):
@@ -183,8 +184,9 @@ def get_bid_parameter(ipo_data_list, target_date):
                     competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
                     commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
                     underwriter = data[cd.IpoData.UNDERWRITER]
+                    fee = [utils.get_bidding_fee(uw) for uw in underwriter]
                     allocated_share_list = data[cd.IpoData.ALLOCATED_SHARE_NUM]
-                    underwriter_info = [(x[0] + '(' + format(x[1], ',d') + '주)') for x in list(zip(underwriter, allocated_share_list))]
+                    underwriter_info = [(x[0] + '(수수료: ' + format(x[1], ',d') + '원, ' + format(x[2], ',d') + '주)') for x in list(zip(underwriter, fee, allocated_share_list))]
                     underwriter_info = ', '.join(underwriter_info)
                     if '스팩' in company_name:
                         minimum_bidding_price = offering_price * 10

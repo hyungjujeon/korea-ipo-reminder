@@ -91,7 +91,7 @@ def get_bidding_url_list(target_date):
         elif (target_date - latest_bidding_start).days > 4:
             break
         else:
-            for idx in range(-1, -len(bidding_period_td_list), -1):
+            for idx in range(-1, -len(bidding_period_td_list) - 1, -1):
                 bidding_start_temp, bidding_fin_temp = bidding_period_td_list[idx].text.strip().replace(' ', '').split('~')
                 bidding_start = datetime.strptime(str(year) + '.' + bidding_start_temp, "%Y.%m.%d")
                 bidding_finish = datetime.strptime(str(year) + '.' + bidding_fin_temp, "%Y.%m.%d")
@@ -136,9 +136,10 @@ def crawl_ipo_info(url):
 
         return total_list
 
-    except:
-        #도중 오류나면, 안읽어옴
-        return
+    except Exception as e:
+        print(e)
+        # 도중 오류나면, 안읽어옴 : null return 해버리게 됨.
+        pass
 
 def get_bidding_info_list(url):
     response = requests.get(url)
@@ -272,7 +273,10 @@ def get_ipo_data_list(date):
         returned_data_list = []
         for url in urls:
             if url:
-                returned_data_list.append(crawl_ipo_info(url))
+                ipo_info = crawl_ipo_info(url)
+                # null returned when ipo canceled
+                if ipo_info:
+                    returned_data_list.append(ipo_info)
         ipo_data_list.append(returned_data_list)
 
     return ipo_data_list

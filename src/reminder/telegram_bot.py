@@ -2,6 +2,7 @@ import os
 import telegram
 import requests
 import src.column_description as cd
+import src.utils as utils
 from datetime import datetime, timedelta
 
 def get_bot_id(bot):
@@ -80,9 +81,10 @@ def get_bid_parameter(ipo_data_list, target_date):
                     competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
                     commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
                     underwriter = data[cd.IpoData.UNDERWRITER]
+                    fee = [utils.get_bidding_fee(uw) for uw in underwriter]
                     allocated_share_list = data[cd.IpoData.ALLOCATED_SHARE_NUM]
-                    underwriter_info = [(x[0] + '(' + format(x[1], ',d') + '주)') for x in list(zip(underwriter, allocated_share_list))]
-                    underwriter_info = ', '.join(underwriter_info)
+                    underwriter_info = [(x[0] + '(수수료: ' + format(x[1], ',d') + '원, ' + format(x[2], ',d') + '주)') for x in list(zip(underwriter, fee, allocated_share_list))]
+                    underwriter_info = ', '.join(underwriter_info)(underwriter_info)
 
                     if '스팩' in company_name:
                         minimum_bidding_price = offering_price * 10
@@ -185,7 +187,7 @@ def send_message_for_test(ipo_data_list, post_id, target_date):
     chat_id = os.environ.get('TELEGRAM_TEST_CHAT_ID')
 
     text = param_list
-    text += '자세히 보기(블로그) : https://hzoo.tistory.com/' + str(post_id)
+    text += '<a href="https://hzoo.tistory.com/' + str(post_id) + '">자세히 보기(블로그)</a>'
     bot.sendMessage(chat_id, text, parse_mode=telegram.ParseMode.HTML)
 
 def send_message(ipo_data_list, post_id, target_date):
@@ -205,5 +207,5 @@ def send_message(ipo_data_list, post_id, target_date):
     chat_id = os.environ.get('TELEGRAM_CHAT_ID')
 
     text = param_list
-    text += '자세히 보기(블로그) : https://hzoo.tistory.com/' + str(post_id)
+    text += '<a href="https://hzoo.tistory.com/' + str(post_id) + '">자세히 보기(블로그)</a>'
     bot.sendMessage(chat_id, text, parse_mode=telegram.ParseMode.HTML)
