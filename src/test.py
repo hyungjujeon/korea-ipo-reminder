@@ -6,7 +6,7 @@ import reminder.telegram_bot as telegram_bot
 
 if __name__ == '__main__':
     today = datetime.utcnow() + timedelta(hours=9)
-    tomorrow = today + timedelta(days=1)
+    tomorrow = today #+ timedelta(days=1)
     if tomorrow.weekday() < 5: #토, 일요일 제외
         ipo_data_list = crawler_ipostock.get_ipo_data_list(tomorrow)
 
