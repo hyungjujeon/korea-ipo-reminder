@@ -7,6 +7,7 @@ import reminder.telegram_bot as telegram_bot
 if __name__ == '__main__':
     today = datetime.utcnow() + timedelta(hours=9)
     tomorrow = today + timedelta(days=1)
+    print("OS : " + platform.system())
     if tomorrow.weekday() < 5: #토, 일요일 제외
         ipo_data_list = crawler_ipostock.get_ipo_data_list(tomorrow)
 
@@ -15,4 +16,4 @@ if __name__ == '__main__':
         ipo_post_id = tistory.write_new_post(ipo_data_list[3:], tomorrow, 'test')
 
         telegram_bot.send_message_for_test(ipo_data_list[:3], bid_post_id, tomorrow)
-        telegram_bot.send_message_for_test(ipo_data_list[3:], ipo_post_id, tomorrow)
+        telegram_bot.send_message_for_test(ipo_data_list[3:], bid_post_id, tomorrow)

@@ -183,6 +183,14 @@ def get_bid_parameter(ipo_data_list, target_date):
                     sale_available_amount = int(offering_price * sale_available_share_num // 100000000)
                     competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
                     commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
+                    if competition_ratio is not None:
+                        competition_ratio = format(int(competition_ratio), ',d') + ': 1'
+                    else:
+                        competition_ratio = '미표기'
+                    if commitment_ratio is None:
+                        commitment_ratio = '미표기'
+                    else:
+                        commitment_ratio += '%'
                     underwriter = data[cd.IpoData.UNDERWRITER]
                     fee = [utils.get_bidding_fee(uw) for uw in underwriter]
                     allocated_share_list = data[cd.IpoData.ALLOCATED_SHARE_NUM]
@@ -207,8 +215,8 @@ def get_bid_parameter(ipo_data_list, target_date):
                     content += p_tag_style + f'💰공모규모 : ' + format(offering_amount, ',d') + '억</p>'
                     content += p_tag_style + f'💰유통가능 금액(예상) : ' + format(sale_available_amount, ',d') + '억</p>'
                     content += p_tag_style + f'🧾유통가능 주식 비율(예상) : {sale_available_share_ratio}' + '%</p>'
-                    content += p_tag_style + f'🏢수요예측 기관 경쟁률 : ' + format(int(competition_ratio), ',d') + ': 1</p>'
-                    content += p_tag_style + f'🏢의무보유 확약 비율(예상) : {commitment_ratio}' + '%</p>'
+                    content += p_tag_style + f'🏢수요예측 기관 경쟁률 : {competition_ratio}' + '</p>'
+                    content += p_tag_style + f'🏢의무보유 확약 비율(예상) : {commitment_ratio}' + '</p>'
                     content += p_tag_style + f'🚩주간사 : ' + underwriter_info + '</p>'
                     content += '<p>&nbsp;</p>' * 2
                     content += '</div></div>'
@@ -258,6 +266,14 @@ def get_ipo_parameter(ipo_data_list, target_date):
                         sale_available_amount = int(offering_price * sale_available_share_num // 100000000)
                         competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
                         commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
+                        if competition_ratio is not None:
+                            competition_ratio = format(int(competition_ratio), ',d') + ': 1'
+                        else:
+                            competition_ratio = '미표기'
+                        if commitment_ratio is None:
+                            commitment_ratio = '미표기'
+                        else:
+                            commitment_ratio += '%'
 
                         tag_list.append(company_name)
                         p_tag_style = '<p data-ke-size="size14" style="margin: 0">'
@@ -271,8 +287,8 @@ def get_ipo_parameter(ipo_data_list, target_date):
                         content += p_tag_style + f'💰유통가능 금액(확정) : ' + format(sale_available_amount, ',d') + '억</p>'
                         content += p_tag_style + f'🧾유통가능 주식 수(확정) : ' + format(sale_available_share_num, ',d') + '주</p>'
                         content += p_tag_style + f'🧾유통가능 주식 비율(확정) : {sale_available_share_ratio}' + '%</p>'
-                        content += p_tag_style + f'🏢수요예측 기관 경쟁률 : ' + format(int(competition_ratio), ',d') + ': 1</p>'
-                        content += p_tag_style + f'🏢의무보유 확약 비율(확정) : {commitment_ratio}' + '%</p>'
+                        content += p_tag_style + f'🏢수요예측 기관 경쟁률 : {competition_ratio}' + '</p>'
+                        content += p_tag_style + f'🏢의무보유 확약 비율(확정) : {commitment_ratio}' + '</p>'
                         content += '<p>&nbsp;</p>' * 2
                         content += '</div></div>'
                         contents.append(content)
