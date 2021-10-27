@@ -87,7 +87,7 @@ def get_bid_parameter(ipo_data_list, target_date):
                     if commitment_ratio is None:
                         commitment_ratio = '미표기'
                     else:
-                        commitment_ratio += '%'
+                        commitment_ratio = str(commitment_ratio) + '%'
                     underwriter = data[cd.IpoData.UNDERWRITER]
                     fee = [utils.get_bidding_fee(uw) for uw in underwriter]
                     allocated_share_list = data[cd.IpoData.ALLOCATED_SHARE_NUM]
@@ -163,7 +163,7 @@ def get_ipo_parameter(ipo_data_list, target_date):
                         if commitment_ratio is None:
                             commitment_ratio = '미표기'
                         else:
-                            commitment_ratio += '%'
+                            commitment_ratio = str(commitment_ratio) + '%'
 
                         content = '<b>' + day_info + str(company_name) + '</b>\n'
                         content += f'📅상장일 : {ipo_date}\n'
