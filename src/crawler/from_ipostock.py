@@ -225,22 +225,26 @@ def get_demand_forecast_result_list(url):
     response = requests.get(url)
     html = response.content.decode('utf-8', 'replace')
     soup = BeautifulSoup(html, 'lxml')
-
-    additional_info_table = soup.select('table[class="view_tb2"]')[1]
-    additional_info_rows = additional_info_table.find_all('tr')
-    del additional_info_rows[1]
-
     try:
-        competition_ratio = float(additional_info_rows[0].find_all('td')[1].text.strip().replace(' ', '').replace('\xa0', '').replace(',', '').replace(':1', ''))
-    except:
-        print("기관 경쟁률 미표기")
-        competition_ratio = 0
+        additional_info_table = soup.select('table[class="view_tb2"]')[1]
+        additional_info_rows = additional_info_table.find_all('tr')
+        del additional_info_rows[1]
 
-    try:
-        commitment_ratio = float(additional_info_rows[1].find_all('td')[1].text.strip().replace(' ', '').replace('%', ''))
+        try:
+            competition_ratio = float(additional_info_rows[0].find_all('td')[1].text.strip().replace(' ', '').replace('\xa0', '').replace(',', '').replace(':1', ''))
+        except:
+            print("기관 경쟁률 미표기")
+            competition_ratio = None
+
+        try:
+            commitment_ratio = float(additional_info_rows[1].find_all('td')[1].text.strip().replace(' ', '').replace('%', ''))
+        except:
+            print("의무보유 확약 비율 미표기")
+            commitment_ratio = None
     except:
-        print("의무보유 확약 비율 미표기")
-        commitment_ratio = 0
+        print("기관 경쟁률, 의무보유 모두 미표기")
+        competition_ratio = None
+        commitment_ratio = None
 
     return [competition_ratio, commitment_ratio]
 
