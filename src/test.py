@@ -16,4 +16,4 @@ if __name__ == '__main__':
         ipo_post_id = tistory.write_new_post(ipo_data_list[3:], tomorrow, 'test')
 
         telegram_bot.send_message_for_test(ipo_data_list[:3], bid_post_id, tomorrow)
-        telegram_bot.send_message_for_test(ipo_data_list[3:], bid_post_id, tomorrow)
+        telegram_bot.send_message_for_test(ipo_data_list[3:], ipo_post_id, tomorrow)
