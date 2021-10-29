@@ -49,7 +49,7 @@ def get_ipo_url_list(target_date):
         elif (target_date - latest_ipo_start).days > 1:
             break
         else:
-            for idx in range(-1, -len(ipo_period_td_list), -1):
+            for idx in range(-1, -len(ipo_period_td_list) -1, -1):
                 ipo_start_temp = ipo_period_td_list[idx].text.strip().replace(' ', '')
                 ipo_start = datetime.strptime(ipo_start_temp, "%Y.%m.%d")
                 date_diff_ipo_start = (target_date - ipo_start).days
