@@ -280,7 +280,8 @@ def get_ipo_data_list(date):
                 ipo_info = crawl_ipo_info(url)
                 # null returned when ipo canceled
                 if ipo_info:
-                    returned_data_list.append(ipo_info)
+                    if ipo_info[7] != 0:
+                        returned_data_list.append(ipo_info)
         ipo_data_list.append(returned_data_list)
 
     return ipo_data_list
