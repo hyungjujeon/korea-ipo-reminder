@@ -483,40 +483,51 @@ class CrawlerIpoStock(IpoCrawler):
 
         return ipo_demand_forecast
 
+    def is_ipo_cancled(self):
+         title_tr = self.soup.find('strong', {'class': 'view_tit'}).parent.parent
+         ipo_status = title_tr.find_all('td')[1].text
+         if '철회' in ipo_status:
+             return True
+         else:
+             return False
+
     def crawl_ipo_url(self, url):
         self.parsing_html(url)
-        self.crawl_company_name(url)
-        ipo_data = IpoData(self.company_name)
-        ipo_data.set_public_offering_page_url(url)
-        ipo_tables = self.select_tables_by_class('view_tb')[:4]
+        if self.is_ipo_cancled():
+            return None
+        else:
+            self.crawl_company_name(url)
+            ipo_data = IpoData(self.company_name)
+            ipo_data.set_public_offering_page_url(url)
+            ipo_tables = self.select_tables_by_class('view_tb')[:4]
 
-        ipo_date = self.crawl_ipo_date(url, ipo_tables[0])
-        ipo_data.set_ipo_date(ipo_date)
-        del ipo_date
+            ipo_date = self.crawl_ipo_date(url, ipo_tables[0])
+            ipo_data.set_ipo_date(ipo_date)
+            del ipo_date
 
-        ipo_price = self.crawl_ipo_price(url, ipo_tables[1])
-        ipo_data.set_ipo_price(ipo_price)
-        del ipo_price
+            ipo_price = self.crawl_ipo_price(url, ipo_tables[1])
+            ipo_data.set_ipo_price(ipo_price)
+            del ipo_price
 
-        ipo_new_stocks_info = self.crawl_ipo_new_stocks_info(url, ipo_tables[2])
-        ipo_data.set_ipo_new_stocks_info(ipo_new_stocks_info)
-        del ipo_new_stocks_info
+            ipo_new_stocks_info = self.crawl_ipo_new_stocks_info(url, ipo_tables[2])
+            ipo_data.set_ipo_new_stocks_info(ipo_new_stocks_info)
+            del ipo_new_stocks_info
 
-        ipo_underwriter = self.crawl_ipo_underwriter(url, ipo_tables[3])
-        ipo_data.set_ipo_underwriter(ipo_underwriter)
-        del ipo_underwriter
+            ipo_underwriter = self.crawl_ipo_underwriter(url, ipo_tables[3])
+            ipo_data.set_ipo_underwriter(ipo_underwriter)
+            del ipo_underwriter
 
-        ipo_stock_conditions = self.crawl_ipo_stock_conditions(ipo_data.stock_holder_page_url)
-        ipo_data.set_ipo_stock_conditions(ipo_stock_conditions)
-        del ipo_stock_conditions
+            ipo_stock_conditions = self.crawl_ipo_stock_conditions(ipo_data.stock_holder_page_url)
+            ipo_data.set_ipo_stock_conditions(ipo_stock_conditions)
+            del ipo_stock_conditions
 
-        ipo_demand_forecast = self.crawl_ipo_demand_forecast(ipo_data.demand_forecast_page_url)
-        ipo_data.set_ipo_demand_forecast(ipo_demand_forecast)
-        del ipo_demand_forecast
+            ipo_demand_forecast = self.crawl_ipo_demand_forecast(ipo_data.demand_forecast_page_url)
+            ipo_data.set_ipo_demand_forecast(ipo_demand_forecast)
+            del ipo_demand_forecast
 
-        return ipo_data
-        # ipo_demand_forecast_band = crawl_ipo_demand_forecast_band(url)
-        # ipo_allocation_detail = crawl_ipo_allocation_detail(url, ipo_tables[2])
+            return ipo_data
+            # ipo_demand_forecast_band = crawl_ipo_demand_forecast_band(url)
+            # ipo_allocation_detail = crawl_ipo_allocation_detail(url, ipo_tables[2])
 
     def get_monthly_ipo_url_list(self, year, month):
         monthly_url_list = []
@@ -536,7 +547,7 @@ class CrawlerIpoStock(IpoCrawler):
             for url in self.bidding_url_list[i]:
                 if url:
                     ipo_data = self.crawl_ipo_url(url)
-                    if str(ipo_data.offering_price) != '0':
+                    if ipo_data:
                         ipo_data.ref_url_ipo_stock = url
                         self.bidding_data_list_of_lists[i].append(ipo_data)
 
@@ -549,7 +560,7 @@ class CrawlerIpoStock(IpoCrawler):
                 if url:
                     print(url)
                     ipo_data = self.crawl_ipo_url(url)
-                    if str(ipo_data.offering_price) != '0':
+                    if ipo_data:
                         ipo_data.ref_url_ipo_stock = url
                         self.ipo_data_list_of_lists[i].append(ipo_data)
 
