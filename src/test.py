@@ -5,7 +5,7 @@ from reminder.telegram_bot import TelegramMessage
 
 if __name__ == '__main__':
     today = datetime.utcnow() + timedelta(hours=9)
-    tomorrow = today + timedelta(days=1)
+    tomorrow = today# + timedelta(days=1)
     if tomorrow.weekday() < 5:
         crawler = CrawlerIpoStock()
         crawler.set_target_date(tomorrow)
