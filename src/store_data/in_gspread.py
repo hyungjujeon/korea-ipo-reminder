@@ -2,7 +2,7 @@ from datetime import datetime
 from time import sleep
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import src.crawler.ipo_crawler as Crawler
+from src.crawler.ipo_crawler import CrawlerIpoStock
 
 def get_google_spreadsheet(sheet_name):
     scope = [
@@ -61,8 +61,8 @@ def write_on_spreadsheet(spreadsheet, ipo_data_list):
 
 def write_on_spreadsheet_per_month(year, start, end):
     for month in range(start, end+1):
-        crawler = Crawler.CrawlerIpoStock()
-        ipo_url_list = Crawler.get_monthly_ipo_url_list(year, month)
+        crawler = CrawlerIpoStock()
+        ipo_url_list = crawler.get_monthly_ipo_url_list(year, month)
 
         ipo_data_list = []
         for url in ipo_url_list:

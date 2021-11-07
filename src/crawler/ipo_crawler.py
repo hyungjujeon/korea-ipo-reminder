@@ -2,7 +2,33 @@ import requests
 from enum import IntEnum
 from datetime import datetime
 from bs4 import BeautifulSoup
-from src.utils import check_bidding_status, check_ipo_status
+
+
+def check_bidding_status(date_diff_bidding_start, date_diff_bidding_finish):
+    if date_diff_bidding_finish > 0:
+        return BiddingStatus.ALREADY_FINISHED
+    elif date_diff_bidding_start == -1:
+        return BiddingStatus.START_TOMORROW
+    elif date_diff_bidding_start == 0:
+        return BiddingStatus.START_TODAY
+    elif date_diff_bidding_start >= 1:
+        if date_diff_bidding_finish == 0:
+            return BiddingStatus.FINISH_TODAY
+        else:
+            return BiddingStatus.PROCEEDING
+    else:
+        return BiddingStatus.START_MORE_THAN_TWO_DAY_AFTER
+
+
+def check_ipo_status(date_diff_ipo_start):
+    if date_diff_ipo_start > 0:
+        return IpoStatus.ALREADY_FINISHED
+    elif date_diff_ipo_start == 0:
+        return IpoStatus.START_TODAY
+    elif date_diff_ipo_start == -1:
+        return IpoStatus.START_TOMORROW
+    else:
+        return IpoStatus.START_MORE_THAN_TWO_DAY_AFTER
 
 
 class BiddingStatus(IntEnum):
