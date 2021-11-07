@@ -1,227 +1,158 @@
 import os
+import yaml
+import platform
 import telegram
 import requests
-import src.column_description as cd
-import src.utils as utils
-from datetime import datetime, timedelta
+from src.utils import ConvertBiddingData, ConvertIpoReadyData, TextContent
 
-def get_bot_id(bot):
-    me = bot.getMe()
-    bot_id = me['id']
 
-    return bot_id
+class TelegramAPI:
+    def __init__(self):
+        self.api_key = None
+        self.main_chat_id = None
+        self.test_chat_id = None
+        self.set_api_key()
+        self.set_main_chat_id()
+        self.set_test_chat_id()
 
-def get_bot_id_html():
-    telegram_key = os.environ.get('TELEGRAM_KEY')
-    url = 'https://api.telegram.org/bot' + telegram_key + '/getMe'
+    def set_api_key(self):
+        if platform.system() == 'Linux':
+            self.api_key = os.environ.get('TELEGRAM_KEY')
+        else:
+            with open('../config.yaml') as f:
+                key_info = yaml.load(f, Loader=yaml.FullLoader)
+                telegram_key = key_info['TELEGRAM_KEY']
 
-    response = requests.get(url, params='')
-    if response.json()['ok'] == True:
-        print('id 받아오기 성공')
-        result = response.json()['result']
-        bot_id = result['id']
+            self.api_key = telegram_key
+
+    def get_bot(self):
+        return telegram.Bot(token=self.api_key)
+
+    def get_bot_id(self, bot: telegram.Bot):
+        me = bot.getMe()
+        bot_id = me['id']
+
         return bot_id
-    else:
-        print('id 받아오기 실패' + str(response.json()))
 
-def get_chat_id_html():
-    telegram_key = os.environ.get('TELEGRAM_KEY')
-    url = 'https://api.telegram.org/bot' + telegram_key + '/getUpdates'
+    def get_bot_id_by_rest_api(self):
+        url = 'https://api.telegram.org/bot' + self.api_key + '/getMe'
 
-    response = requests.get(url, params='')
-    if response.json()['ok'] == True:
-        print('chat id 받아오기 성공')
-        result = response.json()
-    else:
-        print('chat id 받아오기 실패' + str(response.json()))
-
-def get_bid_parameter(ipo_data_list, target_date):
-    weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
-    today = target_date
-
-    title = f'<b>💰{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]} 청약 정보💰</b>\n\n'
-
-    contents = []
-    for idx, ipo_data in enumerate(ipo_data_list):
-        try:
-            if ipo_data:
-                day_info = ''
-                if idx == 0:
-                    day_info = f'📢오늘({today.month}/{today.day}) 청약 마감 : '
-                elif idx == 1:
-                    if len(contents) != 0:
-                        contents.append('\n')
-                    day_info = f'🔔오늘({today.month}/{today.day}) 청약 시작 : '
-                else:
-                    if len(contents) != 0:
-                        contents.append('\n')
-                    tomorrow = today + timedelta(days=1)
-                    day_info = f'📋내일({tomorrow.month}/{tomorrow.day}) 청약 시작 : '
-
-                for data in ipo_data:
-                    company_name = data[cd.IpoData.COMPANY_NAME]
-
-                    bidding_start = data[cd.IpoData.BIDDING_START]
-                    bidding_finish = data[cd.IpoData.BIDDING_FINISH]
-                    refund_date = data[cd.IpoData.REFUND_DATE]
-                    ipo_date = data[cd.IpoData.IPO_DATE]
-
-                    bidding_start += weekdays[datetime.strptime(bidding_start, "%Y.%m.%d").weekday()]
-                    bidding_finish += weekdays[datetime.strptime(bidding_finish, "%Y.%m.%d").weekday()]
-                    refund_date += weekdays[datetime.strptime(refund_date, "%Y.%m.%d").weekday()]
-                    ipo_date += weekdays[datetime.strptime(ipo_date, "%Y.%m.%d").weekday()] if ipo_date else "미정"
-
-                    band_price_low = data[cd.IpoData.BAND_PRICE_LOW]
-                    band_price_high = data[cd.IpoData.BAND_PRICE_HIGH]
-                    offering_price = data[cd.IpoData.OFFERING_PRICE]
-                    offering_amount = data[cd.IpoData.OFFERING_AMOUNT]
-                    sale_available_share_num = data[cd.IpoData.SALE_AVAILABLE_SHARE_NUM]
-                    sale_available_share_ratio = data[cd.IpoData.SALE_AVAILABLE_SHARE_RATIO]
-                    sale_available_amount = int(offering_price * sale_available_share_num // 100000000)
-                    competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
-                    commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
-                    if competition_ratio is not None:
-                        competition_ratio = format(int(competition_ratio), ',d') + ': 1'
-                    else:
-                        competition_ratio = '미표기'
-                    if commitment_ratio is None:
-                        commitment_ratio = '미표기'
-                    else:
-                        commitment_ratio = str(commitment_ratio) + '%'
-                    underwriter = data[cd.IpoData.UNDERWRITER]
-                    fee = [utils.get_bidding_fee(uw) for uw in underwriter]
-                    allocated_share_list = data[cd.IpoData.ALLOCATED_SHARE_NUM]
-                    underwriter_info = [(x[0] + '(수수료: ' + format(x[1], ',d') + '원, ' + format(x[2], ',d') + '주)') for x in list(zip(underwriter, fee, allocated_share_list))]
-                    underwriter_info = ', '.join(underwriter_info)
-
-                    if '스팩' in company_name:
-                        minimum_bidding_price = offering_price * 10
-                    else:
-                        minimum_bidding_price = offering_price * 5
-
-                    content = '<b>' + day_info + str(company_name) + '</b>\n'
-                    content += f'💡균등 최소 청약증거금(10주) : ' + format(minimum_bidding_price, ',d') + '원\n'
-                    content += f'📅공모 일정 : {bidding_start} ~ {bidding_finish}\n'
-                    content += f'📅상장일 : {ipo_date}\n'
-                    content += f'📅환불일 : {refund_date}\n'
-                    content += f'💰희망공모가 : ' + format(band_price_low, ",d") + '원 ~ ' + format(band_price_high, ",d") + '원\n'
-                    content += f'💰확정공모가 : ' + format(offering_price, ",d") + '원\n'
-                    content += f'💰공모규모 : ' + format(offering_amount, ',d') + '억\n'
-                    content += f'💰유통가능 금액(예상) : ' + format(sale_available_amount, ',d') + '억\n'
-                    content += f'🧾유통가능 주식 비율(예상) : {sale_available_share_ratio}' + '%\n'
-                    content += f'🏢수요예측 기관 경쟁률 : {competition_ratio}\n'
-                    content += f'🏢의무보유 확약 비율(예상) : {commitment_ratio}' + '\n'
-                    content += f'🚩주간사 : ' + underwriter_info + '\n'
-                    content += '\n'
-                    contents.append(content)
-        except:
-            pass
-
-    contents = ''.join(contents)
-
-    return title + contents
-
-def get_ipo_parameter(ipo_data_list, target_date):
-    weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
-    today = target_date
-
-    title = f'<b>💰{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]} 상장 정보💰</b>\n\n'
-
-    contents = []
-    for idx, ipo_data in enumerate(ipo_data_list):
-        try:
-            if ipo_data:
-                day_info = ''
-                if idx == 0:
-                    day_info = f'🔔오늘({today.month}/{today.day}) 상장 : '
-                else:
-                    if len(contents) != 0:
-                        contents.append('\n')
-                    tomorrow = today + timedelta(days=1)
-                    day_info = f'📋내일 상장({tomorrow.month}/{tomorrow.day}) : '
-
-                try:
-                    for data in ipo_data:
-                        company_name = data[cd.IpoData.COMPANY_NAME]
-
-                        ipo_date = data[cd.IpoData.IPO_DATE]
-                        ipo_date += weekdays[datetime.strptime(ipo_date, "%Y.%m.%d").weekday()] if ipo_date else "미정"
-
-                        band_price_low = data[cd.IpoData.BAND_PRICE_LOW]
-                        band_price_high = data[cd.IpoData.BAND_PRICE_HIGH]
-                        offering_price = data[cd.IpoData.OFFERING_PRICE]
-                        offering_amount = data[cd.IpoData.OFFERING_AMOUNT]
-                        sale_available_share_num = data[cd.IpoData.SALE_AVAILABLE_SHARE_NUM]
-                        sale_available_share_ratio = data[cd.IpoData.SALE_AVAILABLE_SHARE_RATIO]
-                        sale_available_amount = int(offering_price * sale_available_share_num // 100000000)
-                        competition_ratio = data[cd.IpoData.COMPETITION_RATIO]
-                        commitment_ratio = data[cd.IpoData.COMMITMENT_RATIO]
-                        if competition_ratio is not None:
-                            competition_ratio = format(int(competition_ratio), ',d') + ': 1'
-                        else:
-                            competition_ratio = '미표기'
-                        if commitment_ratio is None:
-                            commitment_ratio = '미표기'
-                        else:
-                            commitment_ratio = str(commitment_ratio) + '%'
-
-                        content = '<b>' + day_info + str(company_name) + '</b>\n'
-                        content += f'📅상장일 : {ipo_date}\n'
-                        content += f'💰희망공모가 : ' + format(band_price_low, ",d") + '원 ~ ' + format(band_price_high, ",d") + '원\n'
-                        content += f'💰확정공모가 : ' + format(offering_price, ",d") + '원\n'
-                        content += f'💰공모규모 : ' + format(offering_amount, ',d') + '억\n'
-                        content += f'💰유통가능 금액(확정) : ' + format(sale_available_amount, ',d') + '억\n'
-                        content += f'🧾유통가능 주식 수(확정) : ' + format(sale_available_share_num, ',d') + '주\n'
-                        content += f'🧾유통가능 주식 비율(확정) : {sale_available_share_ratio}' + '%\n'
-                        content += f'🏢수요예측 기관 경쟁률 : {competition_ratio}\n'
-                        content += f'🏢의무보유 확약 비율(확정) : {commitment_ratio}' + '\n'
-                        content += '\n'
-                        contents.append(content)
-                except:
-                    pass
-        except:
-            pass
-
-    contents = ''.join(contents)
-
-    return title + contents
-
-def send_message_for_test(ipo_data_list, post_id, target_date):
-    if len(ipo_data_list) > 2:
-        if len(ipo_data_list[0]) + len(ipo_data_list[1]) + len(ipo_data_list[2]) == 0:
-            return
+        response = requests.get(url, params='')
+        if response.json()['ok']:
+            print('id 받아오기 성공')
+            result = response.json()['result']
+            bot_id = result['id']
+            return bot_id
         else:
-            param_list = get_bid_parameter(ipo_data_list, target_date)
-    else:
-        if len(ipo_data_list[0]) + len(ipo_data_list[1]) == 0:
-            return
+            print('id 받아오기 실패' + str(response.json()))
+
+    # not yet developed
+    def get_chat_id(self, bot: telegram.Bot):
+        me = bot.getUpdates()
+        print(me)
+
+    # not yet developed
+    def get_chat_id_by_rest_api(self):
+        url = 'https://api.telegram.org/bot' + self.api_key + '/getUpdates'
+
+        response = requests.get(url, params='')
+        if response.json()['ok']:
+            print('chat id 받아오기 성공')
+            result = response.json()
+            print(result)
         else:
-            param_list = get_ipo_parameter(ipo_data_list, target_date)
+            print('chat id 받아오기 실패' + str(response.json()))
 
-    bot_token = os.environ.get('TELEGRAM_KEY')
-    bot = telegram.Bot(token=bot_token)
-    chat_id = os.environ.get('TELEGRAM_TEST_CHAT_ID')
-
-    text = param_list
-    text += '<a href="https://hzoo.tistory.com/' + str(post_id) + '">자세히 보기(블로그)</a>'
-    bot.sendMessage(chat_id, text, parse_mode=telegram.ParseMode.HTML, disable_web_page_preview = True)
-
-def send_message(ipo_data_list, post_id, target_date):
-    if len(ipo_data_list) > 2:
-        if len(ipo_data_list[0]) + len(ipo_data_list[1]) + len(ipo_data_list[2]) == 0:
-            return
+    def set_main_chat_id(self):
+        if platform.system() == 'Linux':
+            self.main_chat_id = os.environ.get('TELEGRAM_CHAT_ID')
         else:
-            param_list = get_bid_parameter(ipo_data_list, target_date)
-    else:
-        if len(ipo_data_list[0]) + len(ipo_data_list[1]) == 0:
-            return
+            with open('../config.yaml') as f:
+                key_info = yaml.load(f, Loader=yaml.FullLoader)
+                self.main_chat_id = key_info['TELEGRAM_CHAT_ID']
+
+    def set_test_chat_id(self):
+        if platform.system() == 'Linux':
+            return os.environ.get('TELEGRAM_TEST_CHAT_ID')
         else:
-            param_list = get_ipo_parameter(ipo_data_list, target_date)
+            with open('../config.yaml') as f:
+                key_info = yaml.load(f, Loader=yaml.FullLoader)
+                self.test_chat_id = key_info['TELEGRAM_TEST_CHAT_ID']
 
-    bot_token = os.environ.get('TELEGRAM_KEY')
-    bot = telegram.Bot(token=bot_token)
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
 
-    text = param_list
-    text += '<a href="https://hzoo.tistory.com/' + str(post_id) + '">자세히 보기(블로그)</a>'
-    bot.sendMessage(chat_id, text, parse_mode=telegram.ParseMode.HTML, disable_web_page_preview = True)
+class TelegramMessage(TextContent):
+    def __init__(self, ipo_data_list_of_lists, target_date, post_type, post_id):
+        super().__init__(ipo_data_list_of_lists, target_date, post_type)
+        if len(ipo_data_list_of_lists) == 3:
+            self.category = '청약'
+        elif len(ipo_data_list_of_lists) == 2:
+            self.category = '상장'
+
+        self.post_id = post_id
+        self.set_title()
+        self.set_subtitle_list()
+        self.set_content()
+
+    def set_title(self):
+        super().set_title()
+        self.title = '<b>' + self.title + '</b>\n\n'
+
+    def set_content(self):
+        data_type_separator = '\n'
+        subtitle_style_open_tag = ''
+        subtitle_style_close_tag = ''
+        subtitle_text_style_open_tag = '<b>'
+        subtitle_text_style_close_tag = '</b>'
+        content_separator = '\n'
+
+        content_list = []
+        for idx, ipo_data_list in enumerate(self.ipo_data_list_of_lists):
+            try:
+                if ipo_data_list:
+                    if len(content_list) != 0:
+                        content_list.append(data_type_separator)
+                    subtitle = self.subtitle_list[idx]
+
+                    for ipo_data in ipo_data_list:
+                        content = subtitle_style_open_tag
+                        content += subtitle_text_style_open_tag + subtitle
+                        content += ipo_data.company_name + subtitle_text_style_close_tag
+
+                        if self.category == '청약':
+                            content += ConvertBiddingData(ipo_data).get_telegram_content()
+                        elif self.category == '상장':
+                            content += ConvertIpoReadyData(ipo_data).get_telegram_content()
+
+                        content += f'🖥️IpoStock 에서 보기 : '
+                        content += f'<a href="{ipo_data.ref_url_ipo_stock}">링크</a>\n'
+                        content += subtitle_style_close_tag + content_separator
+                        content_list.append(content)
+
+            except Exception as e:
+                print(f'Telegram text 생성 중 오류 : {e}')
+
+        self.content = ''.join(content_list)
+
+    def get_content(self):
+        return self.content
+
+    def send_message(self):
+        telegram_api = TelegramAPI()
+        text = self.title + '\n'
+        chat_id = None
+
+        if any(self.ipo_data_list_of_lists):
+            if self.post_type == 'private':
+                chat_id = telegram_api.test_chat_id
+            elif self.post_type == 'public':
+                chat_id = telegram_api.main_chat_id
+        else:
+            return
+
+        text += self.get_content()
+        text += f'📝블로그에서 자세히 보기 : <a href="https://hzoo.tistory.com/{str(self.post_id)}">링크</a>'
+
+        bot = telegram_api.get_bot()
+        del telegram_api
+
+        bot.sendMessage(chat_id, text, parse_mode=telegram.ParseMode.HTML, disable_web_page_preview=True)
