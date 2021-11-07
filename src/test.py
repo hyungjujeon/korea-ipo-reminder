@@ -1,19 +1,29 @@
 from datetime import datetime, timedelta
-import platform
-import crawler.from_ipostock as crawler_ipostock
-import reminder.tistory as tistory
-import reminder.telegram_bot as telegram_bot
+from crawler.ipo_crawler import CrawlerIpoStock
+from reminder.tistory import TistoryPost
+from reminder.telegram_bot import TelegramMessage
 
 if __name__ == '__main__':
     today = datetime.utcnow() + timedelta(hours=9)
     tomorrow = today + timedelta(days=1)
-    print("OS : " + platform.system())
-    if tomorrow.weekday() < 5: #토, 일요일 제외
-        ipo_data_list = crawler_ipostock.get_ipo_data_list(tomorrow)
+    if tomorrow.weekday() < 5:
+        crawler = CrawlerIpoStock()
+        crawler.set_target_date(tomorrow)
 
-        print('테스트 메세지 입니다.')
-        bid_post_id = tistory.write_new_post(ipo_data_list[:3], tomorrow, 'test')
-        ipo_post_id = tistory.write_new_post(ipo_data_list[3:], tomorrow, 'test')
+        bidding_data_list = crawler.get_bidding_data_list_of_lists()
+        ipo_data_list = crawler.get_ipo_data_list_of_lists()
 
-        telegram_bot.send_message_for_test(ipo_data_list[:3], bid_post_id, tomorrow)
-        telegram_bot.send_message_for_test(ipo_data_list[3:], ipo_post_id, tomorrow)
+        bid_post = TistoryPost(bidding_data_list, tomorrow, 'private')
+        ipo_post = TistoryPost(ipo_data_list, tomorrow, 'private')
+        bid_post.write_new_post()
+        ipo_post.write_new_post()
+
+        bid_message = TelegramMessage(bidding_data_list, tomorrow, 'private', bid_post.new_post_id)
+        ipo_message = TelegramMessage(ipo_data_list, tomorrow, 'private', ipo_post.new_post_id)
+        bid_message.send_message()
+        ipo_message.send_message()
+
+        # db = database.Query()
+        # db.create_schema('ipo_reminder')
+        # db.create_table('ipo_reminder', '')
+        # del db
