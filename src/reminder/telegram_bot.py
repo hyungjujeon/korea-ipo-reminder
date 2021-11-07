@@ -73,7 +73,7 @@ class TelegramAPI:
 
     def set_test_chat_id(self):
         if platform.system() == 'Linux':
-            return os.environ.get('TELEGRAM_TEST_CHAT_ID')
+            self.test_chat_id = os.environ.get('TELEGRAM_TEST_CHAT_ID')
         else:
             with open('../config.yaml') as f:
                 key_info = yaml.load(f, Loader=yaml.FullLoader)
