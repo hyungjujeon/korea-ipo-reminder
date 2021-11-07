@@ -93,7 +93,7 @@ class IpoDemandForecast:
 class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderwriter, IpoDemandForecast):
     def __init__(self, company_name):
         self.company_name = company_name
-        self.__public_offering_page_url = None
+        self.public_offering_page_url = None
         self.stock_holder_page_url = None
         self.demand_forecast_page_url = None
         self.ref_url_ipo_stock = None
@@ -105,12 +105,8 @@ class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderw
         IpoUnderwriter.__init__(self)
         IpoDemandForecast.__init__(self)
 
-    @property
-    def public_offering_page_url(self):
-        return self.__public_offering_page_url
 
-    @public_offering_page_url.setter
-    def public_offering_page_url(self, url):
+    def set_public_offering_page_url(self, url):
         self.public_offering_page_url = url
         self.stock_holder_page_url = self.public_offering_page_url.replace('_04', f'_02')
         self.demand_forecast_page_url = self.public_offering_page_url.replace('_04', f'_05')
@@ -491,7 +487,7 @@ class CrawlerIpoStock(IpoCrawler):
         self.parsing_html(url)
         self.crawl_company_name(url)
         ipo_data = IpoData(self.company_name)
-        ipo_data.public_offering_page_url = url
+        ipo_data.set_public_offering_page_url(url)
         ipo_tables = self.select_tables_by_class('view_tb')[:4]
 
         ipo_date = self.crawl_ipo_date(url, ipo_tables[0])
