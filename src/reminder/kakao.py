@@ -2,37 +2,37 @@ import time
 import requests
 import json
 import yaml
-from datetime import datetime
-import src.column_description as cd
+
 
 def create_token(code):
-        with open('../config.yaml') as f:
-            CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
+    with open('../config.yaml') as f:
+        client_id = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
 
-        url = 'https://kauth.kakao.com/oauth/token'
-        data = {
-            'grant_type': 'authorization_code',
-            'client_id': CLIENT_ID,
-            'redirect_uri': 'https://hzoo.tistory.com',
-            'code': code
-        }
-        response = requests.post(url, data=data)
-        tokens = response.json()
+    url = 'https://kauth.kakao.com/oauth/token'
+    data = {
+        'grant_type': 'authorization_code',
+        'client_id': client_id,
+        'redirect_uri': 'https://hzoo.tistory.com',
+        'code': code
+    }
+    response = requests.post(url, data=data)
+    tokens = response.json()
 
-        with open('json/kakao_token.json', 'w') as fp:
-            json.dump(tokens, fp)
+    with open('json/kakao_token.json', 'w') as fp:
+        json.dump(tokens, fp)
+
 
 def refresh_token():
     with open('json/kakao_token.json', 'r') as kt_json:
         kakao_token = json.load(kt_json)
     with open('../config.yaml') as f:
-        CLIENT_ID = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
+        client_id = yaml.load(f, Loader=yaml.FullLoader)['KAKAO_REST_API_KEY']
 
     refresh_token = kakao_token['refresh_token']
     url = 'https://kauth.kakao.com/oauth/token'
     data = {
         'grant_type': 'refresh_token',
-        'client_id': CLIENT_ID,
+        'client_id': client_id,
         'refresh_token': refresh_token,
     }
 
@@ -41,6 +41,7 @@ def refresh_token():
 
     with open('json/refresh_kakao_token.json', 'w') as fp:
         json.dump(refresh_kakao_token, fp)
+
 
 def print_hello_world():
     refresh_token()
@@ -60,11 +61,13 @@ def print_hello_world():
     else:
         print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
 
-def get_bid_contents(ipo_data_list):
-    today = datetime.now()
+
+def get_bid_contents(ipo_data_list, target_date):
+    weekdays = {0: ' (월)', 1: ' (화)', 2: ' (수)', 3: ' (목)', 4: ' (금)', 5: ' (토)', 6: ' (일)'}
+    today = target_date
 
     contents = f'📢청약정보📢\n'
-    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일🗓\n'
+    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]}🗓\n'
 
     for idx, ipo_data in enumerate(ipo_data_list):
         if ipo_data:
@@ -75,21 +78,22 @@ def get_bid_contents(ipo_data_list):
             elif idx == 2:
                 contents += '\n🔥내일 청약 예정 종목'
             for data in ipo_data:
-                data = data.values.tolist()[0]
-                company_name = data[cd.IpoData.COMPANY_NAME]
-                offering_price = data[cd.IpoData.OFFERING_PRICE]
+                company_name = data.company_name
+                offering_price = data.offering_price
 
-                contents += '\n  📊 ' + company_name + f'(공모가: {offering_price})'
+                contents += '\n  📊 ' + company_name + f'(공모가: ' + format(offering_price, ',d') + ')'
 
             contents += '\n'
 
     return contents
 
-def get_ipo_contents(ipo_data_list):
-    today = datetime.now()
+
+def get_ipo_contents(ipo_data_list, target_date):
+    weekdays = {0: ' (월)', 1: ' (화)', 2: ' (수)', 3: ' (목)', 4: ' (금)', 5: ' (토)', 6: ' (일)'}
+    today = target_date
 
     contents = f'📢상장정보📢\n'
-    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일🗓\n'
+    contents += f'🗓️{today.year}년 {today.month}월 {today.day}일{weekdays[today.weekday()]}🗓\n'
 
     for idx, ipo_data in enumerate(ipo_data_list):
         if ipo_data:
@@ -98,28 +102,28 @@ def get_ipo_contents(ipo_data_list):
             elif idx == 1:
                 contents += '\n🔥내일 상장 종목'
             for data in ipo_data:
-                data = data.values.tolist()[0]
-                company_name = data[cd.IpoData.COMPANY_NAME]
-                offering_price = data[cd.IpoData.OFFERING_PRICE]
+                company_name = data.company_name
+                offering_price = data.offering_price
 
-                contents += '\n  📊 ' + company_name + f'(공모가: {offering_price})'
+                contents += '\n  📊 ' + company_name + f'(공모가: ' + format(offering_price, ',d') + ')'
 
             contents += '\n'
 
     return contents
 
-def alarm_text_message(ipo_data_list, post_id):
+
+def alarm_text_message(ipo_data_list, post_id, target_date):
     contents = ''
     if len(ipo_data_list) > 2:
         if len(ipo_data_list[0]) + len(ipo_data_list[1]) + len(ipo_data_list[2]) == 0:
             return
         else:
-            contents = get_bid_contents(ipo_data_list)
+            contents = get_bid_contents(ipo_data_list, target_date)
     else:
         if len(ipo_data_list[0]) + len(ipo_data_list[1]) == 0:
             return
         else:
-            contents = get_ipo_contents(ipo_data_list)
+            contents = get_ipo_contents(ipo_data_list, target_date)
 
     refresh_token()
 
@@ -142,6 +146,7 @@ def alarm_text_message(ipo_data_list, post_id):
     else:
         print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
 
+
 def send_template_message():
     refresh_token()
 
@@ -149,7 +154,8 @@ def send_template_message():
         kakao_token = json.load(tk)
 
     url = 'https://kapi.kakao.com/v2/api/talk/memo/send'
-    headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + kakao_token['access_token']}
+    headers = {'Content-Type': 'application/x-www-form-urlencoded',
+               'Authorization': 'Bearer ' + kakao_token['access_token']}
     data = 'template_id=59335'
 
     print(data)
@@ -160,13 +166,14 @@ def send_template_message():
     else:
         print('메시지를 성공적으로 보내지 못했습니다. 오류메시지 : ' + str(response.json()))
 
+
 def get_header_title_text(index):
     header_title_dict = {
-        0 : '<내일 청약 예정 종목>',
-        1  : '<오늘 청약 시작 종목>',
-        2 : '<오늘 청약 마감 종목>',
-        3 : '<내일 상장 예정 종목>',
-        4 : '<오늘 상장 종목>'
+        0: '<내일 청약 예정 종목>',
+        1: '<오늘 청약 시작 종목>',
+        2: '<오늘 청약 마감 종목>',
+        3: '<내일 상장 예정 종목>',
+        4: '<오늘 상장 종목>'
     }
     try:
         header_text = header_title_dict[index]
@@ -174,6 +181,7 @@ def get_header_title_text(index):
     except Exception as e:
         print(e)
         print("Wrong Index")
+
 
 def alarm_message(ipo_data_list):
     refresh_token()
@@ -223,7 +231,7 @@ def alarm_message(ipo_data_list):
             }
 
             data = {
-                "template_object" : json.dumps(template_object)
+                "template_object": json.dumps(template_object)
             }
 
             print(data)
