@@ -1,16 +1,13 @@
 from datetime import datetime, timedelta
-from crawler.ipo_crawler import CrawlerIpoStock
+from crawler.ipo_crawler import get_bidding_data_list, get_ipo_data_list
 from reminder.tistory import TistoryPost
 from reminder.telegram_bot import TelegramMessage
 
 if __name__ == '__main__':
     today = datetime.utcnow() + timedelta(hours=9)
     if today.weekday() != 5:
-        crawler = CrawlerIpoStock()
-        crawler.set_target_date(today)
-
-        bidding_data_list = crawler.get_bidding_data_list_of_lists()
-        ipo_data_list = crawler.get_ipo_data_list_of_lists()
+        bidding_data_list = get_bidding_data_list(today)
+        ipo_data_list = get_ipo_data_list(today)
 
         bid_post = TistoryPost(bidding_data_list, today, 'public')
         ipo_post = TistoryPost(ipo_data_list, today, 'public')
@@ -21,8 +18,3 @@ if __name__ == '__main__':
         ipo_message = TelegramMessage(ipo_data_list, today, 'public', ipo_post.new_post_id)
         bid_message.send_message()
         ipo_message.send_message()
-
-        # db = database.Query()
-        # db.create_schema('ipo_reminder')
-        # db.create_table('ipo_reminder', '')
-        # del db
