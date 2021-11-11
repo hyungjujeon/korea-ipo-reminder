@@ -269,10 +269,12 @@ class Crawler38Communication(IpoCrawler):
     def parsing_html(self, url):
         try:
             response = requests.get(url)
-        except:
+            html = response.content.decode('euc-kr', 'replace')
+            self.soup = BeautifulSoup(html, 'lxml')
+        except Exception as e:
+            print(f'38com Parsing Error : {e}')
             time.sleep(5)
             response = requests.get(url)
-        finally:
             html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
 
@@ -483,10 +485,12 @@ class CrawlerIpoStock(IpoCrawler):
     def parsing_html(self, url):
         try:
             response = requests.get(url)
-        except:
+            html = response.content.decode('utf-8', 'replace')
+            self.soup = BeautifulSoup(html, 'lxml')
+        except Exception as e:
+            print(f'IpoStock Parsing Error : {e}')
             time.sleep(5)
             response = requests.get(url)
-        finally:
             html = response.content.decode('utf-8', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
 
