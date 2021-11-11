@@ -265,8 +265,8 @@ class Crawler38Communication(IpoCrawler):
         self.soup = None
 
     def parsing_html(self, url):
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        html = response.text
+        response = requests.get(url)
+        html = response.content.decode('euc-kr', 'replace')
         self.soup = BeautifulSoup(html, 'lxml')
 
     def get_company_tr_list(self, data_type):

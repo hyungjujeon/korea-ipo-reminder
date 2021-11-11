@@ -19,15 +19,6 @@ if __name__ == '__main__':
         bid_message = TelegramMessage(bidding_data_list, tomorrow, 'private', bid_post.new_post_id)
         ipo_message = TelegramMessage(ipo_data_list, tomorrow, 'private', ipo_post.new_post_id)
 
-        now = datetime.utcnow()
-        while (now.minute % 10) != 9:
-            time.sleep(60)
-            now = datetime.utcnow()
-
-        while (now.minute % 10) != 0:
-            time.sleep(1)
-            now = datetime.utcnow()
-
         bid_message.send_message()
         ipo_message.send_message()
 
