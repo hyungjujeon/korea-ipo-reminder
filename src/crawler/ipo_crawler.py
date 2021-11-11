@@ -268,13 +268,13 @@ class Crawler38Communication(IpoCrawler):
 
     def parsing_html(self, url):
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0'})
             html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
         except Exception as e:
             print(f'38com Parsing Error : {e}')
             time.sleep(5)
-            response = requests.get(url)
+            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0'})
             html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
 
