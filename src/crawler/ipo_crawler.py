@@ -5,6 +5,7 @@ import requests
 from enum import IntEnum
 from datetime import datetime
 from bs4 import BeautifulSoup
+from selenium import webdriver
 
 
 def check_bidding_status(date_diff_bidding_start, date_diff_bidding_finish):
@@ -269,11 +270,24 @@ class Crawler38Communication(IpoCrawler):
 
     def parsing_html(self, url):
         if platform.system() == 'Linux':
-            user_agent = os.environ.get('USER_AGENT_STRING')
-            print('request 날리기 전')
-            response = requests.get(url, headers={'User-Agent': user_agent})
-            print('request 날리기 후')
-            html = response.content.decode('euc-kr', 'replace')
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+
+            driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"),
+                                      chrome_options=chrome_options)
+            driver.implicitly_wait(10)
+            driver.get(url)
+            html = driver.page_source
+            driver.close()
+
+            # user_agent = os.environ.get('USER_AGENT_STRING')
+            # print(f'request 날리기 전 --> {url}')
+            # response = requests.get(url)#, headers={'User-Agent': user_agent})
+            # print('request 날리기 후')
+            # html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
         else:
             response = requests.get(url)
