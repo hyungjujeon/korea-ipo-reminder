@@ -1,3 +1,5 @@
+import time
+
 import requests
 from enum import IntEnum
 from datetime import datetime
@@ -265,9 +267,14 @@ class Crawler38Communication(IpoCrawler):
         self.soup = None
 
     def parsing_html(self, url):
-        response = requests.get(url)
-        html = response.content.decode('euc-kr', 'replace')
-        self.soup = BeautifulSoup(html, 'lxml')
+        try:
+            response = requests.get(url)
+        except:
+            time.sleep(5)
+            response = requests.get(url)
+        finally:
+            html = response.content.decode('euc-kr', 'replace')
+            self.soup = BeautifulSoup(html, 'lxml')
 
     def get_company_tr_list(self, data_type):
         if data_type == 'bid':
@@ -474,9 +481,14 @@ class CrawlerIpoStock(IpoCrawler):
         self.soup = None
 
     def parsing_html(self, url):
-        response = requests.get(url)
-        html = response.content.decode('utf-8', 'replace')
-        self.soup = BeautifulSoup(html, 'lxml')
+        try:
+            response = requests.get(url)
+        except:
+            time.sleep(5)
+            response = requests.get(url)
+        finally:
+            html = response.content.decode('utf-8', 'replace')
+            self.soup = BeautifulSoup(html, 'lxml')
 
     def convert_bidding_td_to_datetime(self, td, time):
         year = self.target_date.year
