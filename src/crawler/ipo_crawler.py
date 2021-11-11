@@ -1,5 +1,6 @@
+import os
 import time
-
+import platform
 import requests
 from enum import IntEnum
 from datetime import datetime
@@ -267,14 +268,15 @@ class Crawler38Communication(IpoCrawler):
         self.soup = None
 
     def parsing_html(self, url):
-        try:
-            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0'})
+        if platform.system() == 'Linux':
+            user_agent = os.environ.get('USER_AGENT_STRING')
+            print('request 날리기 전')
+            response = requests.get(url, headers={'User-Agent': user_agent})
+            print('request 날리기 후')
             html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
-        except Exception as e:
-            print(f'38com Parsing Error : {e}')
-            time.sleep(5)
-            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0'})
+        else:
+            response = requests.get(url)
             html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
 
