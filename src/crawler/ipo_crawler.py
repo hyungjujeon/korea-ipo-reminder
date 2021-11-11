@@ -269,13 +269,11 @@ class Crawler38Communication(IpoCrawler):
         self.ipo_table_summary = '신규상장종목'
         self.soup = None
 
+    #TODO : Connection Timeout 해결하기
     def parsing_html(self, url):
         if platform.system() == 'Linux':
-            print('시작')
-            print(url)
             with urllib.request.urlopen(url) as response:
                 html = response.read().decode('euc-kr', 'replace')
-            print('제발')
             self.soup = BeautifulSoup(html, 'lxml')
         else:
             response = requests.get(url)
@@ -890,6 +888,7 @@ def is_empty(value, value_type):
         return True if value == 0 else False
 
 
+#TODO : 두 사이트가 같은 순서로 종목을 나열해두지 않았으므로, 종목이름으로 먼저 체크해야함
 def double_check_data(data_from_38_com, data_from_ipo_stock):
     for i in range(len(data_from_38_com)):
         for j, ipo_data_38_com in enumerate(data_from_38_com[i]):
@@ -922,30 +921,32 @@ def double_check_data(data_from_38_com, data_from_ipo_stock):
 
 
 def get_bidding_data_list(target_date):
-    crawler_38com = Crawler38Communication()
-    crawler_38com.set_target_date(target_date)
+    # crawler_38com = Crawler38Communication()
+    # crawler_38com.set_target_date(target_date)
 
     crawler_ipo_stock = CrawlerIpoStock()
     crawler_ipo_stock.set_target_date(target_date)
 
-    bidding_data_list_38com = crawler_38com.get_bidding_data_list_of_lists()
+    # bidding_data_list_38com = crawler_38com.get_bidding_data_list_of_lists()
     bidding_data_list_ipo_stock = crawler_ipo_stock.get_bidding_data_list_of_lists()
 
-    bidding_data_list = double_check_data(bidding_data_list_38com, bidding_data_list_ipo_stock)
+    # bidding_data_list = double_check_data(bidding_data_list_38com, bidding_data_list_ipo_stock)
 
-    return bidding_data_list
+    # return bidding_data_list
+    return bidding_data_list_ipo_stock
 
 
 def get_ipo_data_list(target_date):
-    crawler_38com = Crawler38Communication()
+    # crawler_38com = Crawler38Communication()
     crawler_ipo_stock = CrawlerIpoStock()
 
-    crawler_38com.set_target_date(target_date)
+    # crawler_38com.set_target_date(target_date)
     crawler_ipo_stock.set_target_date(target_date)
 
-    ipo_data_list_38com = crawler_38com.get_ipo_data_list_of_lists()
+    # ipo_data_list_38com = crawler_38com.get_ipo_data_list_of_lists()
     ipo_data_list_ipo_stock = crawler_ipo_stock.get_ipo_data_list_of_lists()
 
-    ipo_data_list = double_check_data(ipo_data_list_38com, ipo_data_list_ipo_stock)
+    # ipo_data_list = double_check_data(ipo_data_list_38com, ipo_data_list_ipo_stock)
 
-    return ipo_data_list
+    return ipo_data_list_ipo_stock
+    # return ipo_data_list

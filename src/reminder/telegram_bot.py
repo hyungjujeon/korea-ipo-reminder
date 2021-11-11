@@ -125,8 +125,9 @@ class TelegramMessage(TextContent):
 
                         content += f'🖥️ipostock에서 자세히 보기 : '
                         content += f'<a href="{ipo_data.ref_url_ipo_stock}">링크</a>\n'
-                        content += f'🖥️38com에서 자세히 보기 : '
-                        content += f'<a href="{ipo_data.ref_url_38com}">링크</a>\n'
+                        #TODO : Connection Timeout 해결 후 주석 해제
+                        # content += f'🖥️38com에서 자세히 보기 : '
+                        # content += f'<a href="{ipo_data.ref_url_38com}">링크</a>\n'
 
                         content += subtitle_style_close_tag + content_separator
                         content_list.append(content)

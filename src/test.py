@@ -6,7 +6,7 @@ from reminder.telegram_bot import TelegramMessage
 
 if __name__ == '__main__':
     today = datetime.utcnow() + timedelta(hours=9)
-    tomorrow = today - timedelta(days=2)
+    tomorrow = today + timedelta(days=1)
     if tomorrow.weekday() < 5:
         bidding_data_list = get_bidding_data_list(tomorrow)
         ipo_data_list = get_ipo_data_list(tomorrow)
