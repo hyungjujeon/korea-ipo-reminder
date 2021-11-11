@@ -263,9 +263,9 @@ class Crawler38Communication(IpoCrawler):
     def __init__(self):
         super().__init__()
         self.base_url = 'http://www.38.co.kr'
-        self.base_bidding_url = 'http://www.38.co.kr/html/fund/index.htm?o=k&page=1'
+        self.base_bidding_url = 'http://www.38.co.kr/html/fund/index.htm?o=k'
         self.bidding_table_summary = '공모주 청약일정'
-        self.base_ipo_url = 'http://www.38.co.kr/html/fund/index.htm?o=nw&page=1'
+        self.base_ipo_url = 'http://www.38.co.kr/html/fund/index.htm?o=nw'
         self.ipo_table_summary = '신규상장종목'
         self.soup = None
 
