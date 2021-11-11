@@ -272,6 +272,7 @@ class Crawler38Communication(IpoCrawler):
     def parsing_html(self, url):
         if platform.system() == 'Linux':
             print('시작')
+            print(url)
             with urllib.request.urlopen(url) as response:
                 html = response.read().decode('euc-kr', 'replace')
             print('제발')
