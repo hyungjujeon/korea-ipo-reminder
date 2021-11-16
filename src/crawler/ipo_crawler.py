@@ -103,6 +103,7 @@ class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderw
         self.demand_forecast_page_url = None
         self.ref_url_ipo_stock = None
         self.ref_url_38com = None
+        self.is_from_KONEX = False
         IpoDate.__init__(self)
         IpoPrice.__init__(self)
         IpoNewStocksInfo.__init__(self)
@@ -159,7 +160,7 @@ class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderw
     def get_ipo_date(self):
         ipo_date = IpoDate()
 
-        ipo_date.bidding_start =  self.bidding_start
+        ipo_date.bidding_start = self.bidding_start
         ipo_date.bidding_finish = self.bidding_finish
         ipo_date.refund = self.refund
         ipo_date.go_public = self.go_public
@@ -269,7 +270,7 @@ class Crawler38Communication(IpoCrawler):
         self.ipo_table_summary = '신규상장종목'
         self.soup = None
 
-    #TODO : Connection Timeout 해결하기
+    # TODO : Connection Timeout 해결하기
     def parsing_html(self, url):
         if platform.system() == 'Linux':
             with urllib.request.urlopen(url) as response:
@@ -530,6 +531,17 @@ class CrawlerIpoStock(IpoCrawler):
         self.company_name = self.soup.find('strong', {'class': 'view_tit'}).text.strip()
         return self.company_name
 
+    def check_is_company_from_KONEX(self, url):
+        if self.soup is None:
+            self.parsing_html(url)
+        try:
+            stock_market_img = self.soup.select('img[src^="/image/contents/f.jpg"]')[0]
+            print(f'{self.company_name} : from KONEX')
+            return True
+        except IndexError:
+            print(f'{self.company_name} : not from KONEX')
+            return False
+
     def get_stock_conditions(self, stock_condition_trs):
         stock_conditions = []
         idx = -1
@@ -765,6 +777,7 @@ class CrawlerIpoStock(IpoCrawler):
         else:
             self.crawl_company_name(url)
             ipo_data = IpoData(self.company_name)
+            ipo_data.is_from_KONEX = self.check_is_company_from_KONEX(url)
             ipo_data.set_public_offering_page_url(url)
             ipo_tables = self.select_tables_by_class('view_tb')[:4]
 
@@ -888,7 +901,7 @@ def is_empty(value, value_type):
         return True if value == 0 else False
 
 
-#TODO : 두 사이트가 같은 순서로 종목을 나열해두지 않았으므로, 종목이름으로 먼저 체크해야함
+# TODO : 두 사이트가 같은 순서로 종목을 나열해두지 않았으므로, 종목이름으로 먼저 체크해야함
 def double_check_data(data_from_38_com, data_from_ipo_stock):
     for i in range(len(data_from_38_com)):
         for j, ipo_data_38_com in enumerate(data_from_38_com[i]):

@@ -20,6 +20,7 @@ class ConvertIpoDataType:
         self.content_list = []
 
         self.company_name = ipo_data.company_name
+        self.is_from_KONEX = ipo_data.is_from_KONEX
 
         self.bidding_start = ipo_data.bidding_start + weekdays[
             datetime.strptime(ipo_data.bidding_start, "%Y.%m.%d").weekday()]
@@ -78,12 +79,16 @@ class ConvertBiddingData(ConvertIpoDataType):
 
         self.content_list[0] = '<b>' + self.content_list[0] + '</b>'
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
+        if self.is_from_KONEX:
+            self.content_list.insert(0, p_tag_style + f'<b>❗❗코넥스→코스닥 이전상장 종목</b></p>')
 
         return ''.join(self.content_list)
 
     def get_telegram_content(self):
         super().to_content_list()
         self.content_list = [content + '\n' for content in self.content_list]
+        if self.is_from_KONEX:
+            self.content_list.insert(0, f'<b>❗❗코넥스→코스닥 이전상장 종목</b>\n')
 
         return '\n' + ''.join(self.content_list)
 
@@ -103,6 +108,9 @@ class ConvertIpoReadyData(ConvertIpoDataType):
         self.content_list[-5:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
 
+        if self.is_from_KONEX:
+            self.content_list.insert(0, p_tag_style + f'<b>❗❗코넥스→코스닥 이전상장 종목</b></p>')
+
         return ''.join(self.content_list)
 
     def get_telegram_content(self):
@@ -114,6 +122,8 @@ class ConvertIpoReadyData(ConvertIpoDataType):
 
         self.content_list[-5:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
         self.content_list = [content + '\n' for content in self.content_list]
+        if self.is_from_KONEX:
+            self.content_list.insert(0, f'<b>❗❗코넥스→코스닥 이전상장 종목</b>\n')
 
         return '\n' + ''.join(self.content_list)
 
