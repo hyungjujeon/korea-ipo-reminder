@@ -270,12 +270,31 @@ class Crawler38Communication(IpoCrawler):
         self.ipo_table_summary = '신규상장종목'
         self.soup = None
 
-    # TODO : Connection Timeout 해결하기
     def parsing_html(self, url):
         if platform.system() == 'Linux':
-            with urllib.request.urlopen(url) as response:
-                html = response.read().decode('euc-kr', 'replace')
-            self.soup = BeautifulSoup(html, 'lxml')
+            proxy_url = 'https://free-proxy-list.net/'
+            proxy_res = requests.get(proxy_url)
+            print(f'free proxy url response : {proxy_res.status_code}')
+            proxy_html = proxy_res.content.decode('utf-8', 'replace')
+            soup = BeautifulSoup(proxy_html, 'lxml')
+            tbody = soup.select('table[class="table table-striped table-bordered"]')[0].contents[1]
+            rows = tbody.find_all('tr')
+            country = 'Korea'
+            port = '80'
+
+            for row in rows:
+                tds = row.find_all('td')
+                if tds[3].text == country and tds[1].text == port:
+                    free_proxy = tds[0].text
+                    proxy = {"https": free_proxy, "http": free_proxy}
+                    try:
+                        response = requests.get(url, proxies=proxy)
+                        print(f'38com url response : {response.status_code}')
+                        html = response.content.decode('euc-kr', 'replace')
+                        self.soup = BeautifulSoup(html, 'lxml')
+                        break
+                    except Exception as e:
+                        print(f'error occurred : {e}')
         else:
             response = requests.get(url)
             html = response.content.decode('euc-kr', 'replace')
@@ -901,65 +920,63 @@ def is_empty(value, value_type):
         return True if value == 0 else False
 
 
-# TODO : 두 사이트가 같은 순서로 종목을 나열해두지 않았으므로, 종목이름으로 먼저 체크해야함
 def double_check_data(data_from_38_com, data_from_ipo_stock):
     for i in range(len(data_from_38_com)):
-        for j, ipo_data_38_com in enumerate(data_from_38_com[i]):
+        for ipo_data_38_com in data_from_38_com[i]:
             if ipo_data_38_com:
-                ipo_data_ipo_stock = data_from_ipo_stock[i][j]
+                for j, ipo_data_ipo_stock in enumerate(data_from_ipo_stock[i]):
+                    if ipo_data_ipo_stock.company_name == ipo_data_38_com.company_name:
+                        if not is_empty(ipo_data_38_com.go_public, 'date'):
+                            if is_empty(ipo_data_ipo_stock.go_public, 'date'):
+                                data_from_ipo_stock[i][j].go_public = ipo_data_38_com.go_public
 
-                if not is_empty(ipo_data_38_com.go_public, 'date'):
-                    if is_empty(ipo_data_ipo_stock.go_public, 'date'):
-                        data_from_ipo_stock[i][j].go_public = ipo_data_38_com.go_public
+                        if not is_empty(ipo_data_38_com.offering_price, 'price'):
+                            if is_empty(ipo_data_ipo_stock.offering_price, 'price'):
+                                data_from_ipo_stock[i][j].offering_price = ipo_data_38_com.offering_price
 
-                if not is_empty(ipo_data_38_com.offering_price, 'price'):
-                    if is_empty(ipo_data_ipo_stock.offering_price, 'price'):
-                        data_from_ipo_stock[i][j].offering_price = ipo_data_38_com.offering_price
+                        if not is_empty(ipo_data_38_com.offering_amount, 'price'):
+                            if is_empty(ipo_data_ipo_stock.offering_amount, 'price'):
+                                data_from_ipo_stock[i][j].offering_amount = ipo_data_38_com.offering_amount
 
-                if not is_empty(ipo_data_38_com.offering_amount, 'price'):
-                    if is_empty(ipo_data_ipo_stock.offering_amount, 'price'):
-                        data_from_ipo_stock[i][j].offering_amount = ipo_data_38_com.offering_amount
+                        if not is_empty(ipo_data_38_com.competition_ratio, 'ratio'):
+                            if is_empty(ipo_data_ipo_stock.competition_ratio, 'ratio'):
+                                data_from_ipo_stock[i][j].competition_ratio = ipo_data_38_com.competition_ratio
 
-                if not is_empty(ipo_data_38_com.competition_ratio, 'ratio'):
-                    if is_empty(ipo_data_ipo_stock.competition_ratio, 'ratio'):
-                        data_from_ipo_stock[i][j].competition_ratio = ipo_data_38_com.competition_ratio
+                        if not is_empty(ipo_data_38_com.commitment_ratio, 'ratio'):
+                            if is_empty(ipo_data_ipo_stock.commitment_ratio, 'ratio'):
+                                data_from_ipo_stock[i][j].commitment_ratio = ipo_data_38_com.commitment_ratio
 
-                if not is_empty(ipo_data_38_com.commitment_ratio, 'ratio'):
-                    if is_empty(ipo_data_ipo_stock.commitment_ratio, 'ratio'):
-                        data_from_ipo_stock[i][j].commitment_ratio = ipo_data_38_com.commitment_ratio
-
-                data_from_ipo_stock[i][j].ref_url_38com = ipo_data_38_com.ref_url_38com
+                        data_from_ipo_stock[i][j].ref_url_38com = ipo_data_38_com.ref_url_38com
+                        break
 
     return data_from_ipo_stock
 
 
 def get_bidding_data_list(target_date):
-    # crawler_38com = Crawler38Communication()
-    # crawler_38com.set_target_date(target_date)
+    crawler_38com = Crawler38Communication()
+    crawler_38com.set_target_date(target_date)
 
     crawler_ipo_stock = CrawlerIpoStock()
     crawler_ipo_stock.set_target_date(target_date)
 
-    # bidding_data_list_38com = crawler_38com.get_bidding_data_list_of_lists()
+    bidding_data_list_38com = crawler_38com.get_bidding_data_list_of_lists()
     bidding_data_list_ipo_stock = crawler_ipo_stock.get_bidding_data_list_of_lists()
 
-    # bidding_data_list = double_check_data(bidding_data_list_38com, bidding_data_list_ipo_stock)
+    bidding_data_list = double_check_data(bidding_data_list_38com, bidding_data_list_ipo_stock)
 
-    # return bidding_data_list
-    return bidding_data_list_ipo_stock
+    return bidding_data_list
 
 
 def get_ipo_data_list(target_date):
-    # crawler_38com = Crawler38Communication()
+    crawler_38com = Crawler38Communication()
     crawler_ipo_stock = CrawlerIpoStock()
 
-    # crawler_38com.set_target_date(target_date)
+    crawler_38com.set_target_date(target_date)
     crawler_ipo_stock.set_target_date(target_date)
 
-    # ipo_data_list_38com = crawler_38com.get_ipo_data_list_of_lists()
+    ipo_data_list_38com = crawler_38com.get_ipo_data_list_of_lists()
     ipo_data_list_ipo_stock = crawler_ipo_stock.get_ipo_data_list_of_lists()
 
-    # ipo_data_list = double_check_data(ipo_data_list_38com, ipo_data_list_ipo_stock)
+    ipo_data_list = double_check_data(ipo_data_list_38com, ipo_data_list_ipo_stock)
 
-    return ipo_data_list_ipo_stock
-    # return ipo_data_list
+    return ipo_data_list
