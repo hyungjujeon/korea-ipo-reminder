@@ -1,12 +1,12 @@
-import os
+import re
 import time
 import platform
 import requests
 from enum import IntEnum
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 from selenium import webdriver
-import urllib.request
 
 
 def check_bidding_status(date_diff_bidding_start, date_diff_bidding_finish):
@@ -589,6 +589,9 @@ class CrawlerIpoStock(IpoCrawler):
             first_bidding_start_date_of_page = self.convert_bidding_td_to_datetime(bidding_period_td_list[-1], 'start')
             last_bidding_finish_date_of_page = self.convert_bidding_td_to_datetime(bidding_period_td_list[0], 'finish')
 
+            if last_bidding_finish_date_of_page < first_bidding_start_date_of_page:
+                last_bidding_finish_date_of_page += relativedelta(years=1)
+
             if (first_bidding_start_date_of_page - self.target_date).days > 1:
                 continue
             elif (last_bidding_finish_date_of_page - self.target_date).days < -1:
@@ -980,3 +983,43 @@ def get_ipo_data_list(target_date):
     ipo_data_list = double_check_data(ipo_data_list_38com, ipo_data_list_ipo_stock)
 
     return ipo_data_list
+
+
+def get_ipo_after_data(company_name):
+    driver = webdriver.Chrome('../chromedriver')
+    default_url = 'https://finance.naver.com/'
+    driver.get(default_url)
+    driver.implicitly_wait(20)
+    driver.find_element_by_class_name('snb_search_text').send_keys(company_name)
+    driver.implicitly_wait(20)
+    driver.find_element_by_class_name('snb_search_btn').click()
+    time.sleep(3)
+    company_code = None
+
+    try:
+        company_code = int(re.compile(r"\S+\?code=").sub('', driver.current_url))
+    except ValueError as e:
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'lxml')
+        a_tags = soup.select('a[href^="/item/main.naver?"]')
+        for a_tag in a_tags:
+            if a_tag.text == company_name:
+                company_code = int(re.compile(r"\S+\?code=").sub('', a_tag.get('href')))
+                break
+    finally:
+        page_to_crawl = 'https://finance.naver.com/item/sise_day.naver?code=' + str(company_code)
+
+        driver.get(page_to_crawl)
+        time.sleep(3)
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'lxml')
+        table = soup.find('table', {'summary': '페이지 네비게이션 리스트'})
+        page = table.find_all('td')
+        last_page_url = default_url + page[-1].find('a').get('href')
+
+        driver.get(last_page_url)
+        time.sleep(3)
+        new_table = driver.find_element_by_class_name('type2')
+        tr_list = new_table.text.split('\n')
+
+        return tr_list
