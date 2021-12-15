@@ -312,10 +312,12 @@ class Crawler38Communication(IpoCrawler):
                         break
                     except Exception as e:
                         print(f'error occurred : {e}')
+                        self.parsing_html(url)
         else:
             response = requests.get(url)
             html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
+        return
 
     def get_company_tr_list(self, data_type):
         if data_type == 'bid':
