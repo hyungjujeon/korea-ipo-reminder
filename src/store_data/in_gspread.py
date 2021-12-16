@@ -1,9 +1,7 @@
 import os
 import gspread
 import platform
-from time import sleep
 from datetime import datetime
-from src.crawler.ipo_crawler import CrawlerIpoStock, IpoData, get_ipo_after_data
 from oauth2client.service_account import ServiceAccountCredentials
 
 
@@ -46,7 +44,7 @@ class GoogleSpreadSheet:
     def set_worksheet_by_sheet_name(self, sheet_name):
         self.worksheet = self.spreadsheet.worksheet(sheet_name)
 
-    def convert_before_ipo_data_format(self, ipo_data: IpoData):
+    def convert_before_ipo_data_format(self, ipo_data):
         converted_data_list = [ipo_data.company_name]
 
         weekdays = {0: ' (월)', 1: ' (화)', 2: ' (수)', 3: ' (목)', 4: ' (금)', 5: ' (토)', 6: ' (일)'}
@@ -136,29 +134,14 @@ class GoogleSpreadSheet:
             row_data = self.convert_before_ipo_data_format(ipo_data)
             self.worksheet.append_row(row_data)
 
-    def append_monthly_before_ipo(self, year, month):
-        crawler = CrawlerIpoStock()
-        url_lists = crawler.get_monthly_ipo_url_list(year, month)
+    def update_before_ipo(self, ipo_data):
+        company_data_row = self.worksheet.find(ipo_data.company_name).row
+        data = self.convert_before_ipo_data_format(ipo_data)
+        self.worksheet.update('A' + str(company_data_row), [data])
 
-        data_lists = []
-        for url in url_lists:
-            if url:
-                ipo_data = crawler.crawl_ipo_url(url)
-                if ipo_data:
-                    ipo_data.ref_url_ipo_stock = url
-                    try:
-                        data = self.convert_before_ipo_data_format(ipo_data)
-                        data_lists.append(data)
-                    except:
-                        pass
-
-        self.worksheet.add_rows(len(data_lists))
-        self.worksheet.update('A' + str(self.worksheet.row_count + 1), data_lists)
-
-    def update_after_ipo(self, company_name):
+    def update_after_ipo(self, company_name, tr_list):
         company_data_row = self.worksheet.find(company_name).row
         offering_price = int(self.worksheet.cell(company_data_row, 8).value)
-        tr_list = get_ipo_after_data(company_name)
 
         for j in range(-1, -len(tr_list) - 1, -1):
             if not str.isspace(tr_list[j]):
