@@ -8,6 +8,23 @@ from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
+SPAC_company = {'디비금융': 'DB금융', '아이비케이에스': 'IBKS', '에스케이': 'SK', 'NH': '엔에이치', 'KB': '케이비'}
+
+
+def convert_SPAC(company_name):
+    company_name = company_name.replace('기업인수목적', '').replace('스팩', '')
+    spac_num_pattern = re.search('제?([0-9]+호)', company_name)
+    spac_num_full = spac_num_pattern.group(0)
+    spac_num = spac_num_pattern.group(1)
+    spac_underwriter = company_name.replace(spac_num_full, '')
+
+    try:
+        spac_name = SPAC_company[spac_underwriter] + '스팩' + spac_num
+    except:
+        spac_name = spac_underwriter + '스팩' + spac_num
+
+    return spac_name
+
 
 def check_bidding_status(date_diff_bidding_start, date_diff_bidding_finish):
     if date_diff_bidding_finish > 0:
@@ -295,10 +312,12 @@ class Crawler38Communication(IpoCrawler):
                         break
                     except Exception as e:
                         print(f'error occurred : {e}')
+                        self.parsing_html(url)
         else:
             response = requests.get(url)
             html = response.content.decode('euc-kr', 'replace')
             self.soup = BeautifulSoup(html, 'lxml')
+        return
 
     def get_company_tr_list(self, data_type):
         if data_type == 'bid':
@@ -468,6 +487,12 @@ class Crawler38Communication(IpoCrawler):
         ipo_demand_forecast = self.crawl_ipo_demand_forecast()
         ipo_data.set_ipo_demand_forecast(ipo_demand_forecast)
         del ipo_demand_forecast
+
+        company_name = ipo_data.company_name
+
+        if '스팩' in company_name or '기업인수' in company_name:
+            ipo_data.company_name = convert_SPAC(company_name)
+            ipo_data.offering_price = '2000'
 
         return ipo_data
 
@@ -827,9 +852,13 @@ class CrawlerIpoStock(IpoCrawler):
             ipo_data.set_ipo_demand_forecast(ipo_demand_forecast)
             del ipo_demand_forecast
 
+            company_name = ipo_data.company_name
+
+            if '스팩' in company_name or '기업인수' in company_name:
+                ipo_data.company_name = convert_SPAC(company_name)
+                ipo_data.offering_price = '2000'
+
             return ipo_data
-            # ipo_demand_forecast_band = crawl_ipo_demand_forecast_band(url)
-            # ipo_allocation_detail = crawl_ipo_allocation_detail(url, ipo_tables[2])
 
     def get_monthly_ipo_url_list(self, year, month):
         monthly_url_list = []
@@ -866,50 +895,6 @@ class CrawlerIpoStock(IpoCrawler):
                         self.ipo_data_list_of_lists[i].append(ipo_data)
 
         return self.ipo_data_list_of_lists
-
-    # Not use yet
-    # def crawl_demand_forecast_band(url):
-    #     crawler = CrawlerIpoStock()
-    #     crawler.parsing_html(url)
-    #
-    #     table = crawler.select_tables_by_class('view_tb')[1]
-    #     band_rows = table.find_all('tr')[2:]
-    #
-    #     price_list = []  # 가격
-    #     registration_num_list = []  # 건수
-    #     registration_ratio_list = []  # 건수비중
-    #     amount_list = []  # 참여수량
-    #     amount_ratio_list = []  # 참여수량비중
-    #
-    #     for result_row in band_rows:
-    #         tds = result_row.find_all('td')
-    #         price_list.append(tds[0].text.strip())
-    #         registration_num_list.append(tds[1].text.strip())
-    #         registration_ratio_list.append(tds[2].text.strip())
-    #         amount_list.append(tds[3].text.strip())
-    #         amount_ratio_list.append(tds[4].text.strip())
-    #
-    #     return [price_list, registration_num_list, registration_ratio_list, amount_list, amount_ratio_list]
-
-    # def crawl_allocation_detail(url, table=None):
-    #     if table is None:
-    #         crawler = CrawlerIpoStock()
-    #         crawler.parsing_html(url)
-    #         table = crawler.select_tables_by_class('view_tb')[2]
-
-    # allocation_ratio_table_rows = table.find_all('tr')
-    #
-    # investor_num = allocation_ratio_table_rows[1].find_all('td')[2].text.strip().replace(" ", "")  # 1: 전문투자자
-    # investor_ratio = allocation_ratio_table_rows[1].find_all('td')[3].text.strip().replace(" ", "")
-    #
-    # employee_num = allocation_ratio_table_rows[2].find_all('td')[1].text.strip().replace(" ", "")  # 2: 우리사주조합
-    # employee_ratio = allocation_ratio_table_rows[2].find_all('td')[2].text.strip().replace(" ", "")
-    #
-    # public_num = allocation_ratio_table_rows[3].find_all('td')[1].text.strip().replace(" ", "")  # 3: 일반청약자
-    # public_ratio = allocation_ratio_table_rows[3].find_all('td')[2].text.strip().replace(" ", "")
-    #
-    # foreigner_num = allocation_ratio_table_rows[4].find_all('td')[1].text.strip().replace(" ", "")  # 4: 해외투자자
-    # foreigner_ratio = allocation_ratio_table_rows[4].find_all('td')[2].text.strip().replace(" ", "")
 
 
 def is_empty(value, value_type):
