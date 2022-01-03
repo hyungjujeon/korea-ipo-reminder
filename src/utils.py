@@ -2,17 +2,49 @@ from crawler.ipo_crawler import IpoData
 from datetime import datetime, timedelta
 
 weekdays = {0: '(월)', 1: '(화)', 2: '(수)', 3: '(목)', 4: '(금)', 5: '(토)', 6: '(일)'}
-
+quote_range_KOSPI = {}
 
 def get_bidding_fee(underwriter_name):
-    if underwriter_name in ['미래에셋증권', '한국투자증권', '삼성증권', 'SK증권', '대신증권', '신영증권', '현대차증권']:
+    if underwriter_name in ['미래에셋증권', '한국투자증권', '하나금융투자', '삼성증권', 'SK증권', '대신증권', '신영증권', '현대차증권', '하이투자증권']:
         return 2000
     elif underwriter_name == 'KB증권':
         return 1500
-    elif underwriter_name in ['한화투자증권', '하이투자증권']:
+    elif underwriter_name in ['한화투자증권', '교보증권']:
         return 1000
     else:
         return 0
+
+
+def get_stock_quote(stock_price: int, market_type: str):
+    quote = 0
+
+    if market_type == 'KOSDAQ':
+        if stock_price >= 50000:
+            quote = 100
+            return quote
+
+    price_level = stock_price / (5 * 10**(len(str(stock_price)) - 1))
+    price_level += 2 * (len(str(stock_price)) - 4)
+    price_level = min(int(price_level), 5)
+
+    quote = 5 * ((price_level % 2) + 1) * 10**(price_level // 2)
+
+    return quote
+
+
+def check_is_upper_limit_price(price_changed: int, closing_price: int, market_type: str):
+    is_upper_limit_price = False
+
+    change_ratio = price_changed / (closing_price - price_changed)
+    if change_ratio == 0.3:
+        is_upper_limit_price = True
+    elif change_ratio >= 0.295:
+        tick = get_stock_quote(closing_price, market_type)
+        change_ratio = (price_changed + tick) / (closing_price - price_changed)
+        if change_ratio > 0.3:
+            is_upper_limit_price = True
+
+    return is_upper_limit_price
 
 
 class ConvertIpoDataType:
@@ -20,6 +52,7 @@ class ConvertIpoDataType:
         self.content_list = []
 
         self.company_name = ipo_data.company_name
+        self.is_from_KONEX = ipo_data.is_from_KONEX
 
         self.bidding_start = ipo_data.bidding_start + weekdays[
             datetime.strptime(ipo_data.bidding_start, "%Y.%m.%d").weekday()]
@@ -78,12 +111,16 @@ class ConvertBiddingData(ConvertIpoDataType):
 
         self.content_list[0] = '<b>' + self.content_list[0] + '</b>'
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
+        if self.is_from_KONEX:
+            self.content_list.insert(0, p_tag_style + f'<b>❗❗코넥스→코스닥 이전상장 종목</b></p>')
 
         return ''.join(self.content_list)
 
     def get_telegram_content(self):
         super().to_content_list()
         self.content_list = [content + '\n' for content in self.content_list]
+        if self.is_from_KONEX:
+            self.content_list.insert(0, f'<b>❗❗코넥스→코스닥 이전상장 종목</b>\n')
 
         return '\n' + ''.join(self.content_list)
 
@@ -103,6 +140,9 @@ class ConvertIpoReadyData(ConvertIpoDataType):
         self.content_list[-5:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
 
+        if self.is_from_KONEX:
+            self.content_list.insert(0, p_tag_style + f'<b>❗❗코넥스→코스닥 이전상장 종목</b></p>')
+
         return ''.join(self.content_list)
 
     def get_telegram_content(self):
@@ -114,6 +154,8 @@ class ConvertIpoReadyData(ConvertIpoDataType):
 
         self.content_list[-5:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
         self.content_list = [content + '\n' for content in self.content_list]
+        if self.is_from_KONEX:
+            self.content_list.insert(0, f'<b>❗❗코넥스→코스닥 이전상장 종목</b>\n')
 
         return '\n' + ''.join(self.content_list)
 
