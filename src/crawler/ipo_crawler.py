@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-SPAC_company = {'디비금융': 'DB금융', '아이비케이에스': 'IBKS', '에스케이': 'SK', 'NH': '엔에이치', 'KB': '케이비'}
+SPAC_company = {'디비금융': 'DB금융', '아이비케이에스': 'IBKS', '에스케이': 'SK', 'NH': '엔에이치', 'KB': '케이비', '에이치엠씨아이비': '에이치엠씨'}
 
 
 def convert_SPAC(company_name):
@@ -19,8 +19,19 @@ def convert_SPAC(company_name):
     spac_underwriter = company_name.replace(spac_num_full, '')
 
     try:
-        spac_name = SPAC_company[spac_underwriter] + '스팩' + spac_num
+        spac_underwriter = SPAC_company[spac_underwriter]
     except:
+        #그대로 사용
+        pass
+
+    spac_name = ''
+    if spac_underwriter in ['SK', '교보', '하나금융', '하나머스트', '한국']:
+        spac_name = spac_underwriter + spac_num + '스팩'
+
+    elif spac_underwriter in ['IBKS', '대신밸런스', '신한', '에이치엠씨', '유안타', '케이비', '하이', '한화플러스']:
+        spac_name = spac_underwriter + '제' + spac_num + '스팩'
+
+    else:
         spac_name = spac_underwriter + '스팩' + spac_num
 
     return spac_name
