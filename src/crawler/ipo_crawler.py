@@ -123,6 +123,14 @@ class IpoDemandForecast:
         self.commitment_ratio = None
 
 
+class IpoBiddingResult:
+    def __init__(self):
+        self.num_of_equal_allocated_stocks = None
+        self.num_of_investors = None
+        self.final_competition_ratio = None
+        self.final_commitment_ratio = None
+
+
 class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderwriter, IpoDemandForecast):
     def __init__(self, company_name):
         self.company_name = company_name
@@ -132,6 +140,7 @@ class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderw
         self.ref_url_ipo_stock = None
         self.ref_url_38com = None
         self.is_from_KONEX = False
+        self.market_type = None
         IpoDate.__init__(self)
         IpoPrice.__init__(self)
         IpoNewStocksInfo.__init__(self)
