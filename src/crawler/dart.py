@@ -76,11 +76,11 @@ def crawl_underwriter_table(table):
     for i in range(len(rows) - 1):
         tds = rows[i].find_all('td')
         underwriter = tds[0].text.replace('(주)', '').strip()
-        allocated_stock_num = int(tds[1].text.replace(',', ''))
+        allocated_stock_num = tds[1].text.replace(',', '').strip()
 
         underwriter_list.append(underwriter)
         allocated_stock_num_list.append(allocated_stock_num)
-        allocated_stock_ratio_list.append(allocated_stock_num / total_stock_num)
+        allocated_stock_ratio_list.append(str(int(allocated_stock_num) / total_stock_num))
 
     return [', '.join(underwriter_list), ', '.join(allocated_stock_num_list), ', '.join(allocated_stock_ratio_list)]
 
@@ -98,13 +98,13 @@ def crawl_bidding_result_table(table):
     for i in range(len(rows) - 1):
         tds = rows[i].find_all('td')
         institution = tds[0].text.replace('(주)', '').strip()
-        initial_allocated_stock_num = int(tds[1].text.replace(',', ''))
-        final_allocated_stock_num = int(tds[8].text.replace(',', ''))
+        initial_allocated_stock_num = tds[1].text.replace(',', '').strip()
+        final_allocated_stock_num = tds[8].text.replace(',', '').strip()
 
         if '일반' in institution:
-            public_bidding_num = int(tds[3].text.replace(',', '')) # 일반 투자자 청약 건수
-            public_bidding_quantity = int(tds[4].text.replace(',', '')) # 일반 투자자 청약 수량
-            public_ratio = public_bidding_quantity / final_allocated_stock_num # 비례 경쟁률
+            public_bidding_num = tds[3].text.replace(',', '').strip()  # 일반 투자자 청약 건수
+            public_bidding_quantity = tds[4].text.replace(',', '').strip()  # 일반 투자자 청약 수량
+            public_ratio = str(int(public_bidding_quantity) / int(final_allocated_stock_num))  # 비례 경쟁률
             public_bidding_result = [public_bidding_num, public_bidding_quantity, public_ratio]
 
         institution_list.append(institution)
@@ -123,7 +123,7 @@ def crawl_bidding_method_table(table):
     for i in range(len(rows) - 1):
         tds = rows[i].find_all('td')
         method_name = tds[0].text.strip()
-        allocated_stock_num = int(tds[1].text.replace(',', ''))
+        allocated_stock_num = tds[1].text.replace(',', '')
 
         if '균등' in method_name:
             equal_method_num = allocated_stock_num
@@ -131,6 +131,22 @@ def crawl_bidding_method_table(table):
             proportional_method_num = allocated_stock_num
 
     return [equal_method_num, proportional_method_num]
+
+
+def crawl_period_commitment_table(table):
+    rows = table.find('tbody').find_all('tr')
+    period_list = []
+    assigned_num_list = []
+
+    for i in range(len(rows)):
+        tds = rows[i].find_all('td')
+        period = tds[0].text.strip()
+        assigned_num = tds[1].text.replace(',', '')
+
+        period_list.append(period)
+        assigned_num_list.append(assigned_num)
+
+    return [', '.join(period_list), ', '.join(assigned_num_list)]
 
 
 def crawl_bidding_result(url):
@@ -141,9 +157,10 @@ def crawl_bidding_result(url):
     soup = BeautifulSoup(html, 'lxml')
     tables = soup.find_all('table', {'border': '1'})
 
-    underwriter_table_data = crawl_underwriter_table(tables[1])
-    bidding_result_table_data = crawl_bidding_result_table(tables[2])
-    crawl_bidding_method_table = crawl_bidding_result_table(tables[3])
+    underwriter_data = crawl_underwriter_table(tables[1])
+    bidding_result_data = crawl_bidding_result_table(tables[2])
+    crawl_bidding_method_data = crawl_bidding_method_table(tables[3])
+    period_commitment_data = crawl_period_commitment_table(tables[4])
 
     for table in tables:
         try:
