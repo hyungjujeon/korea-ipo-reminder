@@ -63,6 +63,25 @@ def crawl_overview(url):
     driver.quit()
     return data
 
+def crawl_underwriter_table(table):
+    rows = table.find('tbody').find_all('tr')
+    underwriter_list = []
+    allocated_stock_num_list = []
+    allocated_stock_ratio_list = []
+    total_stock_num = int(rows[-1].find_all('td')[1].text.replace(',', ''))
+
+    for i in range(len(rows) - 1):
+        tds = rows[i].find_all('td')
+        underwriter = tds[0].text.replace('(주)', '').strip()
+        allocated_stock_num = int(tds[1].text.replace(',', ''))
+
+        underwriter_list.append(underwriter)
+        allocated_stock_num_list.append(allocated_stock_num)
+        allocated_stock_ratio_list.append(allocated_stock_num / total_stock_num)
+
+    return [', '.join(underwriter_list), ', '.join(allocated_stock_num_list), ', '.join(allocated_stock_ratio_list)]
+
+
 def crawl_bidding_result(url):
     driver = webdriver.Chrome('../../chromedriver')
     driver.get(url)
@@ -70,6 +89,8 @@ def crawl_bidding_result(url):
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
     tables = soup.find_all('table', {'border': '1'})
+
+    underwriter_table_data = crawl_underwriter_table(tables[1])
 
     for table in tables:
         try:
@@ -82,6 +103,7 @@ def crawl_bidding_result(url):
     # html = driver.page_source
     # soup = BeautifulSoup(html, 'lxml')
     # tbody = soup.find('tbody', {'id': 'tbody'})
+
 
 def crawl_after_bid(company_name):
     report_url = get_report_url(company_name)
