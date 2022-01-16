@@ -1,15 +1,9 @@
-import re
 import time
-import platform
-import requests
-from enum import IntEnum
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from src.store_data.in_gspread import GoogleSpreadSheet
 
-
-def get_report_url(company_name):
+def get_report_url(company_name, refund_date):
     driver = webdriver.Chrome('../../chromedriver')
     default_url = 'https://dart.fss.or.kr'
     driver.get(default_url + '/main.do')
@@ -25,13 +19,18 @@ def get_report_url(company_name):
     tbody = soup.find('tbody', {'id': 'tbody'})
     trs = tbody.find_all('tr')
     trs.reverse()
-    for tr in trs:
-        target_td = tr.find_all('td')[2]
-        report_name = target_td.find('a').text.strip()
-        if '증권발행실적보고서' in report_name:
-            report_url = default_url + target_td.find('a').get('href').strip()
-            driver.quit()
-            return report_url
+
+    if len(trs) == 1 and trs[0].find_all('td')[0].text.strip() == '조회 결과가 없습니다.':
+        print('검색 오류 :', company_name)
+    else:
+        for tr in trs:
+            target_td = tr.find_all('td')[2]
+            published_date = tr.find_all('td')[4].text.strip()
+            report_name = target_td.find('a').text.strip()
+            if '증권발행실적보고서' in report_name and published_date == refund_date:
+                report_url = default_url + target_td.find('a').get('href').strip()
+                driver.quit()
+                return report_url
 
 
 def get_target_subtitle_url(report_url):
@@ -99,7 +98,9 @@ def crawl_bidding_result_table(table):
     for i in range(len(rows) - 1):
         tds = rows[i].find_all('td')
         institution = tds[0].text.replace('(주)', '').strip()
+        # 최초 배정 수량
         initial_allocated_stock_num = tds[1].text.replace(',', '').strip()
+        # 최종 배정 수량
         final_allocated_stock_num = tds[8].text.replace(',', '').strip()
 
         if '일반' in institution:
@@ -142,7 +143,7 @@ def crawl_period_commitment_table(table):
     for i in range(len(rows)):
         tds = rows[i].find_all('td')
         period = tds[0].text.strip()
-        assigned_num = tds[1].text.replace(',', '')
+        assigned_num = tds[-2].text.strip().replace(',', '')
 
         period_list.append(period)
         assigned_num_list.append(assigned_num)
@@ -175,23 +176,42 @@ def crawl_bidding_result(url):
     crawl_bidding_method_data = crawl_bidding_method_table(tables[3])
     period_commitment_data = crawl_period_commitment_table(tables[4])
 
+    result = underwriter_data + bidding_result_data + crawl_bidding_method_data + period_commitment_data
     bidding_result_detail_data = []
 
     if len(tables) > 5:
         for table in tables[5:]:
             bidding_result_detail = crawl_bidding_result_detail_table(table)
-            bidding_result_detail_data.append(bidding_result_detail)
+            bidding_result_detail_data += bidding_result_detail
+
+        result += [', '.join(bidding_result_detail_data)]
 
     driver.quit()
+    return result
 
 
 def crawl_after_bid(company_name):
-    report_url = get_report_url(company_name)
+    gs = GoogleSpreadSheet()
+    row = gs.worksheet.find(company_name).row
+    refund_date = gs.worksheet.cell(row, 4).value[:-4]
+
+    report_url = get_report_url(company_name, refund_date)
     subtitle_url_list = get_target_subtitle_url(report_url)
     overview_data = crawl_overview(subtitle_url_list[0])
     bidding_result_data = crawl_bidding_result(subtitle_url_list[1])
 
+    gs.worksheet.append_row([company_name] + overview_data + bidding_result_data)
+
 
 # company = '모비릭스'
-company = 'SK바이오사이언스'
-crawl_after_bid(company)
+done_list = ['모비릭스', '프레스티지바이오파마', '엘비루셈', '에스디바이오센서', '카카오뱅크', '바이젠셀', '현대중공업', '리파인']
+exception_list = ['솔루엠', '딥노이드', '플래티어', ]
+# 솔루엠ㅤ : 일반투자자 세부 배정현황이 5번 뒤가 아닌 4번 뒤에 있음
+# 딥노이드 : 의무보유 확약 테이블 기존 틀 X, 일반투자자 세부 배정현황이 5번 뒤가 아닌 4번 뒤에 있음
+# 플래티어 : 의무보유 확약 테이블 기존 틀 X, 일반투자자 세부 배정현황이 기존틀 X
+# 라온테크 : 의무보유 확약 테이블 기존 틀 X, 검색 후 추가 팝업, 일반투자자 세부 배정현황이 5번 뒤가 아닌 4번 뒤에 있음
+
+company_list = ['롯데렌탈']
+# [ '롯데렌탈', '와이엠텍', '미래에셋글로벌리츠', '케이티비네트워크']
+for company in company_list:
+    crawl_after_bid(company)
