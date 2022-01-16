@@ -24,6 +24,7 @@ def get_report_url(company_name):
     soup = BeautifulSoup(html, 'lxml')
     tbody = soup.find('tbody', {'id': 'tbody'})
     trs = tbody.find_all('tr')
+    trs.reverse()
     for tr in trs:
         target_td = tr.find_all('td')[2]
         report_name = target_td.find('a').text.strip()
