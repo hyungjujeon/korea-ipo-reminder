@@ -66,6 +66,18 @@ def crawl_overview(url):
 def crawl_bidding_result(url):
     driver = webdriver.Chrome('../../chromedriver')
     driver.get(url)
+
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'lxml')
+    tables = soup.find_all('table', {'border': '1'})
+
+    for table in tables:
+        try:
+            cols = [col.text for col in table.find_all('th')]
+            print(cols)
+        except:
+            pass
+
     driver.quit()
     # html = driver.page_source
     # soup = BeautifulSoup(html, 'lxml')
