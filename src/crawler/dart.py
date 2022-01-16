@@ -28,7 +28,7 @@ def get_report_url(company_name):
     for tr in trs:
         target_td = tr.find_all('td')[2]
         report_name = target_td.find('a').text.strip()
-        if report_name == '증권발행실적보고서':
+        if '증권발행실적보고서' in report_name:
             report_url = default_url + target_td.find('a').get('href').strip()
             driver.quit()
             return report_url
