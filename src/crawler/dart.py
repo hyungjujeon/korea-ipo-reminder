@@ -52,10 +52,16 @@ def get_target_subtitle_url(report_url):
 def crawl_overview(url):
     driver = webdriver.Chrome('../../chromedriver')
     driver.get(url)
+
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'lxml')
+    table = soup.find('table')
+
+    tds = table.find_all('td')
+    data = [td.text for td in tds]
+
     driver.quit()
-    # html = driver.page_source
-    # soup = BeautifulSoup(html, 'lxml')
-    # tbody = soup.find('tbody', {'id': 'tbody'})
+    return data
 
 def crawl_bidding_result(url):
     driver = webdriver.Chrome('../../chromedriver')
@@ -72,5 +78,6 @@ def crawl_after_bid(company_name):
     bidding_result_data = crawl_bidding_result(subtitle_url_list[1])
 
 
-company = '모비릭스'
-crawl_after_bid('모비릭스')
+# company = '모비릭스'
+company = 'SK바이오사이언스'
+crawl_after_bid(company)
