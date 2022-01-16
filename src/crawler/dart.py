@@ -149,6 +149,18 @@ def crawl_period_commitment_table(table):
     return [', '.join(period_list), ', '.join(assigned_num_list)]
 
 
+def crawl_bidding_result_detail_table(table):
+    total_row = table.find('tbody').find_all('tr')[-1].find_all('td')
+
+    bidding_num = total_row[1].text.replace(',', '').strip()  # 청약 건수
+    total_assigned_num = total_row[-2].text.replace(',', '').strip()  # 총 배정수량
+    proportional_assigned_num = total_row[-3].text.replace(',', '').strip()  # 비례 배정 수량
+    equal_assigned_num =  str(int(total_assigned_num) - int(proportional_assigned_num))  # 균등 배정 수량
+    equal_ratio = str(int(equal_assigned_num) / int(bidding_num))
+
+    return [bidding_num, total_assigned_num, equal_assigned_num, equal_ratio]
+
+
 def crawl_bidding_result(url):
     driver = webdriver.Chrome('../../chromedriver')
     driver.get(url)
@@ -162,17 +174,14 @@ def crawl_bidding_result(url):
     crawl_bidding_method_data = crawl_bidding_method_table(tables[3])
     period_commitment_data = crawl_period_commitment_table(tables[4])
 
-    for table in tables:
-        try:
-            cols = [col.text for col in table.find_all('th')]
-            print(cols)
-        except:
-            pass
+    bidding_result_detail_data = []
+
+    if len(tables) > 5:
+        for table in tables[5:]:
+            bidding_result_detail = crawl_bidding_result_detail_table(table)
+            bidding_result_detail_data.append(bidding_result_detail)
 
     driver.quit()
-    # html = driver.page_source
-    # soup = BeautifulSoup(html, 'lxml')
-    # tbody = soup.find('tbody', {'id': 'tbody'})
 
 
 def crawl_after_bid(company_name):
