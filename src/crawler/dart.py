@@ -115,6 +115,24 @@ def crawl_bidding_result_table(table):
             ', '.join(final_allocated_stock_num_list)] + public_bidding_result
 
 
+def crawl_bidding_method_table(table):
+    rows = table.find('tbody').find_all('tr')
+    equal_method_num = None
+    proportional_method_num = None
+
+    for i in range(len(rows) - 1):
+        tds = rows[i].find_all('td')
+        method_name = tds[0].text.strip()
+        allocated_stock_num = int(tds[1].text.replace(',', ''))
+
+        if '균등' in method_name:
+            equal_method_num = allocated_stock_num
+        elif '비례' in method_name:
+            proportional_method_num = allocated_stock_num
+
+    return [equal_method_num, proportional_method_num]
+
+
 def crawl_bidding_result(url):
     driver = webdriver.Chrome('../../chromedriver')
     driver.get(url)
@@ -125,6 +143,7 @@ def crawl_bidding_result(url):
 
     underwriter_table_data = crawl_underwriter_table(tables[1])
     bidding_result_table_data = crawl_bidding_result_table(tables[2])
+    crawl_bidding_method_table = crawl_bidding_result_table(tables[3])
 
     for table in tables:
         try:
