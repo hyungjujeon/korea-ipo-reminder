@@ -87,13 +87,6 @@ def crawl_underwriter_table(table):
 
 def crawl_bidding_result_table(table):
     rows = table.find('tbody').find_all('tr')
-    # 구분
-    institution_list = []
-    # 최초 배정
-    initial_allocated_stock_num_list = []
-    # 최종 배정
-    final_allocated_stock_num_list = []
-    public_bidding_result = None
 
     for i in range(len(rows) - 1):
         tds = rows[i].find_all('td')
@@ -104,17 +97,10 @@ def crawl_bidding_result_table(table):
         final_allocated_stock_num = tds[8].text.replace(',', '').strip()
 
         if '일반' in institution:
-            public_bidding_num = tds[3].text.replace(',', '').strip()  # 일반 투자자 청약 건수
-            public_bidding_quantity = tds[4].text.replace(',', '').strip()  # 일반 투자자 청약 수량
-            public_ratio = str(int(public_bidding_quantity) / int(final_allocated_stock_num))  # 비례 경쟁률
-            public_bidding_result = [public_bidding_num, public_bidding_quantity, public_ratio]
-
-        institution_list.append(institution)
-        initial_allocated_stock_num_list.append(initial_allocated_stock_num)
-        final_allocated_stock_num_list.append(final_allocated_stock_num)
-
-    return [', '.join(institution_list), ', '.join(initial_allocated_stock_num_list),
-            ', '.join(final_allocated_stock_num_list)] + public_bidding_result
+            public_num = tds[3].text.replace(',', '').strip()  # 일반 투자자 청약 건수
+            public_quantity = tds[4].text.replace(',', '').strip()  # 일반 투자자 청약 수량
+            public_ratio = str(int(public_quantity) / int(final_allocated_stock_num))  # 비례 경쟁률
+            return [initial_allocated_stock_num, final_allocated_stock_num, public_num, public_quantity, public_ratio]
 
 
 def crawl_bidding_method_table(table):
@@ -157,11 +143,45 @@ def crawl_bidding_result_detail_table(table):
     bidding_num = total_row[1].text.replace(',', '').strip()  # 청약 건수
     total_assigned_num = total_row[-2].text.replace(',', '').strip()  # 총 배정수량
     proportional_assigned_num = total_row[-3].text.replace(',', '').strip()  # 비례 배정 수량
-    equal_assigned_num =  str(int(total_assigned_num) - int(proportional_assigned_num))  # 균등 배정 수량
+    equal_assigned_num = str(int(total_assigned_num) - int(proportional_assigned_num))  # 균등 배정 수량
     equal_ratio = str(int(equal_assigned_num) / int(bidding_num))
 
-    return [bidding_num, total_assigned_num, equal_assigned_num, equal_ratio]
+    return [total_assigned_num, equal_assigned_num, bidding_num, equal_ratio]
 
+
+def split_by_underwriter(underwriter_data, period_commitment_data, bidding_result_detail_data):
+    splited_data = []
+    underwriters = underwriter_data[0].split(', ')
+    allocated_stocks = underwriter_data[1].split(', ')
+    allocated_ratio = underwriter_data[2].split(', ')
+
+    period_type = period_commitment_data[0].split(', ')
+    period_assigned_num = period_commitment_data[1].split(', ')
+
+    sorted_assigned_num_list = ['', '', '', '', '', '']
+
+    for i, period in enumerate(period_type):
+        if '6개월' in period:
+            sorted_assigned_num_list[0] = period_assigned_num[i]
+        elif '3개월' in period:
+            sorted_assigned_num_list[1] = period_assigned_num[i]
+        elif '1개월' in period:
+            sorted_assigned_num_list[2] = period_assigned_num[i]
+        elif '15일' in period:
+            sorted_assigned_num_list[3] = period_assigned_num[i]
+        elif '미확약' in period:
+            sorted_assigned_num_list[4] = period_assigned_num[i]
+        else:
+            sorted_assigned_num_list[5] = period_assigned_num[i]
+
+    if not bidding_result_detail_data:
+        bidding_result_detail_data = [0] * 4 * len(underwriters)
+
+    for i, underwriter in enumerate(underwriters):
+        splited_data.append([underwriter, allocated_stocks[i], allocated_ratio[i]]
+                            + bidding_result_detail_data[4*i:4*i+4] + sorted_assigned_num_list)
+
+    return splited_data
 
 def crawl_bidding_result(url):
     driver = webdriver.Chrome('../../chromedriver')
@@ -173,10 +193,8 @@ def crawl_bidding_result(url):
 
     underwriter_data = crawl_underwriter_table(tables[1])
     bidding_result_data = crawl_bidding_result_table(tables[2])
-    crawl_bidding_method_data = crawl_bidding_method_table(tables[3])
+    bidding_method_data = crawl_bidding_method_table(tables[3])
     period_commitment_data = crawl_period_commitment_table(tables[4])
-
-    result = underwriter_data + bidding_result_data + crawl_bidding_method_data + period_commitment_data
     bidding_result_detail_data = []
 
     if len(tables) > 5:
@@ -184,7 +202,9 @@ def crawl_bidding_result(url):
             bidding_result_detail = crawl_bidding_result_detail_table(table)
             bidding_result_detail_data += bidding_result_detail
 
-        result += [', '.join(bidding_result_detail_data)]
+        # result += [', '.join(bidding_result_detail_data)]
+    splited_data = split_by_underwriter(underwriter_data, period_commitment_data, bidding_result_detail_data)
+    result = [data + bidding_result_data + bidding_method_data for data in splited_data]
 
     driver.quit()
     return result
@@ -200,18 +220,15 @@ def crawl_after_bid(company_name):
     overview_data = crawl_overview(subtitle_url_list[0])
     bidding_result_data = crawl_bidding_result(subtitle_url_list[1])
 
-    gs.worksheet.append_row([company_name] + overview_data + bidding_result_data)
+    gs.set_worksheet_by_sheet_name('청약결과')
+    for bidding_result in bidding_result_data:
+        gs.worksheet.append_row([company_name] + overview_data + bidding_result)
 
 
 # company = '모비릭스'
-done_list = ['모비릭스', '프레스티지바이오파마', '엘비루셈', '에스디바이오센서', '카카오뱅크', '바이젠셀', '현대중공업', '리파인']
-exception_list = ['솔루엠', '딥노이드', '플래티어', ]
-# 솔루엠ㅤ : 일반투자자 세부 배정현황이 5번 뒤가 아닌 4번 뒤에 있음
-# 딥노이드 : 의무보유 확약 테이블 기존 틀 X, 일반투자자 세부 배정현황이 5번 뒤가 아닌 4번 뒤에 있음
-# 플래티어 : 의무보유 확약 테이블 기존 틀 X, 일반투자자 세부 배정현황이 기존틀 X
-# 라온테크 : 의무보유 확약 테이블 기존 틀 X, 검색 후 추가 팝업, 일반투자자 세부 배정현황이 5번 뒤가 아닌 4번 뒤에 있음
+kb_done_list = ['모비릭스', '프레스티지바이오파마', '엘비루셈', '에스디바이오센서', '카카오뱅크', '바이젠셀', '현대중공업', '리파인', '롯데렌탈']
+kb_exception_list = ['솔루엠', '딥노이드', '플래티어', '라온테크', '와이엠텍', '미래에셋글로벌리츠', '케이티비네트워크']
 
-company_list = ['롯데렌탈']
-# [ '롯데렌탈', '와이엠텍', '미래에셋글로벌리츠', '케이티비네트워크']
+company_list = ['모비릭스', '프레스티지바이오파마', '엘비루셈', '에스디바이오센서', '카카오뱅크', '바이젠셀', '현대중공업', '리파인', '롯데렌탈']
 for company in company_list:
     crawl_after_bid(company)

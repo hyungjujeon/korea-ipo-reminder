@@ -34,7 +34,7 @@ class GoogleSpreadSheet:
                 'https://spreadsheets.google.com/feeds',
                 'https://www.googleapis.com/auth/drive',
             ]
-            json_file_name = '../json/gspread_key.json'
+            json_file_name = 'json/gspread_key.json'
             credentials = ServiceAccountCredentials.from_json_keyfile_name(json_file_name, scope)
             gc = gspread.authorize(credentials)
 
