@@ -473,8 +473,8 @@ class Crawler38Communication(IpoCrawler):
         competition_ratio = demand_forecast_rows_tr[0].text.replace(':1', '').strip()
         commitment_ratio = demand_forecast_rows_tr[1].text.replace('0.00%', '').replace('%', '').strip()
 
-        ipo_demand_forecast.competition_ratio = competition_ratio if any(competition_ratio) else 0
-        ipo_demand_forecast.commitment_ratio = commitment_ratio if any(commitment_ratio) else 0
+        ipo_demand_forecast.competition_ratio = float(competition_ratio) if any(competition_ratio) else 0
+        ipo_demand_forecast.commitment_ratio = float(commitment_ratio) if any(commitment_ratio) else 0
 
         return ipo_demand_forecast
 
