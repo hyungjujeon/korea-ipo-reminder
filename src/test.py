@@ -10,6 +10,15 @@ if __name__ == '__main__':
         bidding_data_list = get_bidding_data_list(today)
         ipo_data_list = get_ipo_data_list(today)
 
+        now = datetime.utcnow()
+        while (now.minute % 10) != 9:
+            time.sleep(60)
+            now = datetime.utcnow()
+
+        while (now.minute % 10) != 0:
+            time.sleep(1)
+            now = datetime.utcnow()
+
         bid_post = TistoryPost(bidding_data_list, today, 'public')
         ipo_post = TistoryPost(ipo_data_list, today, 'public')
 
