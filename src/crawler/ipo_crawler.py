@@ -491,8 +491,8 @@ class Crawler38Communication(IpoCrawler):
         competition_ratio = demand_forecast_rows_tr[0].text.replace(':1', '').strip()
         commitment_ratio = demand_forecast_rows_tr[1].text.replace('0.00%', '').replace('%', '').strip()
 
-        ipo_demand_forecast.competition_ratio = competition_ratio if any(competition_ratio) else 0
-        ipo_demand_forecast.commitment_ratio = commitment_ratio if any(commitment_ratio) else 0
+        ipo_demand_forecast.competition_ratio = float(competition_ratio) if any(competition_ratio) else 0
+        ipo_demand_forecast.commitment_ratio = float(commitment_ratio) if any(commitment_ratio) else 0
 
         return ipo_demand_forecast
 
@@ -658,7 +658,7 @@ class CrawlerIpoStock(IpoCrawler):
             first_bidding_start_date_of_page = self.convert_bidding_td_to_datetime(bidding_period_td_list[-1], 'start')
             last_bidding_finish_date_of_page = self.convert_bidding_td_to_datetime(bidding_period_td_list[0], 'finish')
 
-            if last_bidding_finish_date_of_page.month < first_bidding_start_date_of_page.month:
+            if last_bidding_finish_date_of_page < first_bidding_start_date_of_page:
                 first_bidding_start_date_of_page -= relativedelta(years=1)
 
             if (first_bidding_start_date_of_page - self.target_date).days > 1:
@@ -669,10 +669,12 @@ class CrawlerIpoStock(IpoCrawler):
                 for idx in range(-1, -len(bidding_period_td_list) - 1, -1):
                     bidding_start = self.convert_bidding_td_to_datetime(bidding_period_td_list[idx], 'start')
                     bidding_finish = self.convert_bidding_td_to_datetime(bidding_period_td_list[idx], 'finish')
-                    if bidding_start.month > self.target_date.month:
+
+                    if bidding_start.month == 12 and bidding_start.month > self.target_date.month:
                         bidding_start -= relativedelta(years=1)
-                    if bidding_finish.month > self.target_date.month:
+                    if bidding_finish.month == 12 and bidding_finish.month > self.target_date.month:
                         bidding_finish -= relativedelta(years=1)
+            
                     date_diff_bidding_start = (self.target_date - bidding_start).days
                     date_diff_bidding_finish = (self.target_date - bidding_finish).days
 
