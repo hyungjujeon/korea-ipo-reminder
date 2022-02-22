@@ -123,6 +123,14 @@ class IpoDemandForecast:
         self.commitment_ratio = None
 
 
+class IpoBiddingResult:
+    def __init__(self):
+        self.num_of_equal_allocated_stocks = None
+        self.num_of_investors = None
+        self.final_competition_ratio = None
+        self.final_commitment_ratio = None
+
+
 class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderwriter, IpoDemandForecast):
     def __init__(self, company_name):
         self.company_name = company_name
@@ -132,6 +140,7 @@ class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderw
         self.ref_url_ipo_stock = None
         self.ref_url_38com = None
         self.is_from_KONEX = False
+        self.market_type = None
         IpoDate.__init__(self)
         IpoPrice.__init__(self)
         IpoNewStocksInfo.__init__(self)
@@ -409,6 +418,15 @@ class Crawler38Communication(IpoCrawler):
         self.company_name = company_name
         return company_summary
 
+    def crawl_market_type(self):
+        company_summary = self.find_table_by_summary('기업개요')
+        market_type_tr = company_summary.find_all('tr')[1]
+        market_type_td = market_type_tr.find_all('td')[1]
+        market_type = market_type_td.text.strip()
+        market_type = 'KOSDAQ' if market_type == '코스닥' else 'KOSPI'
+
+        return market_type
+
     def crawl_ipo_date(self):
         ipo_date = IpoDate()
         table = self.find_table_by_summary('공모청약일정')
@@ -482,6 +500,7 @@ class Crawler38Communication(IpoCrawler):
         self.parsing_html(url)
         self.crawl_company_name()
         ipo_data = IpoData(self.company_name)
+        ipo_data.market_type = self.crawl_market_type()
 
         ipo_date = self.crawl_ipo_date()
         ipo_data.set_ipo_date(ipo_date)
@@ -586,16 +605,30 @@ class CrawlerIpoStock(IpoCrawler):
         self.company_name = self.soup.find('strong', {'class': 'view_tit'}).text.strip()
         return self.company_name
 
-    def check_is_company_from_KONEX(self, url):
+    def crawl_market_type(self, url):
         if self.soup is None:
             self.parsing_html(url)
+
         try:
-            stock_market_img = self.soup.select('img[src^="/image/contents/f.jpg"]')[0]
-            print(f'{self.company_name} : from KONEX')
-            return True
+            kosdaq_img = self.soup.select('img[src^="/image/contents/co.gif"]')[0]
+            print(f'{self.company_name} : will list in KOSDAQ')
+            return 'KOSDAQ'
         except IndexError:
-            print(f'{self.company_name} : not from KONEX')
-            return False
+            pass
+
+        try:
+            kospi_img = self.soup.select('img[src^="/image/contents/u.gif"]')[0]
+            print(f'{self.company_name} : will list in KOSPI')
+            return 'KOSPI'
+        except IndexError:
+            pass
+
+        try:
+            konex_img = self.soup.select('img[src^="/image/contents/f.jpg"]')[0]
+            print(f'{self.company_name} : from KONEX, will list in KOSDAQ')
+            return 'KONEX'
+        except IndexError:
+            pass
 
     def get_stock_conditions(self, stock_condition_trs):
         stock_conditions = []
@@ -641,7 +674,7 @@ class CrawlerIpoStock(IpoCrawler):
                         bidding_start -= relativedelta(years=1)
                     if bidding_finish.month == 12 and bidding_finish.month > self.target_date.month:
                         bidding_finish -= relativedelta(years=1)
-
+            
                     date_diff_bidding_start = (self.target_date - bidding_start).days
                     date_diff_bidding_finish = (self.target_date - bidding_finish).days
 
@@ -841,7 +874,8 @@ class CrawlerIpoStock(IpoCrawler):
         else:
             self.crawl_company_name(url)
             ipo_data = IpoData(self.company_name)
-            ipo_data.is_from_KONEX = self.check_is_company_from_KONEX(url)
+            ipo_data.market_type = self.crawl_market_type(url)
+            ipo_data.is_from_KONEX = True if ipo_data.market_type == 'KONEX' else False
             ipo_data.set_public_offering_page_url(url)
             ipo_tables = self.select_tables_by_class('view_tb')[:4]
 
