@@ -10,13 +10,8 @@ if __name__ == '__main__':
         bidding_data_list = get_bidding_data_list(today)
         ipo_data_list = get_ipo_data_list(today)
 
-        bid_post = TistoryPost(bidding_data_list, today, 'public')
-        ipo_post = TistoryPost(ipo_data_list, today, 'public')
-        bid_post.write_new_post()
-        ipo_post.write_new_post()
-
-        bid_message = TelegramMessage(bidding_data_list, today, 'public', bid_post.new_post_id)
-        ipo_message = TelegramMessage(ipo_data_list, today, 'public', ipo_post.new_post_id)
+        bid_message = TelegramMessage(bidding_data_list, today, 'public')
+        ipo_message = TelegramMessage(ipo_data_list, today, 'public')
 
         now = datetime.utcnow()
         while (now.minute % 10) != 9:

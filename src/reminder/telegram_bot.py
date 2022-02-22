@@ -81,7 +81,7 @@ class TelegramAPI:
 
 
 class TelegramMessage(TextContent):
-    def __init__(self, ipo_data_list_of_lists, target_date, post_type, post_id):
+    def __init__(self, ipo_data_list_of_lists, target_date, post_type, post_id=None):
         super().__init__(ipo_data_list_of_lists, target_date, post_type)
         if len(ipo_data_list_of_lists) == 3:
             self.category = '청약'
@@ -153,7 +153,8 @@ class TelegramMessage(TextContent):
             return
 
         text += self.get_content()
-        text += f'📝블로그에서 자세히 보기 : <a href="https://hzoo.tistory.com/{str(self.post_id)}">링크</a>'
+        if any(self.post_id):
+            text += f'📝블로그에서 자세히 보기 : <a href="https://hzoo.tistory.com/{str(self.post_id)}">링크</a>'
 
         bot = telegram_api.get_bot()
         del telegram_api

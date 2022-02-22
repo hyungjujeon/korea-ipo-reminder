@@ -7,7 +7,7 @@ quote_range_KOSPI = {}
 def get_bidding_fee(underwriter_name):
     if underwriter_name in ['미래에셋증권', '한국투자증권', '하나금융투자', '삼성증권', 'SK증권', '대신증권', '신영증권', '현대차증권', '하이투자증권']:
         return 2000
-    elif underwriter_name == 'KB증권':
+    elif underwriter_name in ['KB증권', 'KB투자증권']:
         return 1500
     elif underwriter_name in ['한화투자증권', '교보증권']:
         return 1000
@@ -71,6 +71,8 @@ class ConvertIpoDataType:
         self.ratio_of_sale_available = ipo_data.ratio_of_sale_available
         self.amount_of_sale_available = int(self.offering_price * self.num_of_stock_sale_available // 100000000)
 
+        self.underwriter_list = ipo_data.underwriter
+
         underwriter = ipo_data.underwriter.split(', ')
         fee = [get_bidding_fee(uw) for uw in underwriter]
         num_of_stock_allocated = ipo_data.num_of_stock_allocated.split(', ')
@@ -98,7 +100,8 @@ class ConvertIpoDataType:
         self.content_list.append(f'🧾유통가능 주식 비율(예상) : {self.ratio_of_sale_available}' + '%')
         self.content_list.append(f'🏢수요예측 기관 경쟁률 : (' + format(self.competition_ratio, '.2f') + ' : 1)')
         self.content_list.append(f'🏢의무보유 확약 비율(예상) : {self.commitment_ratio}' + '%')
-        self.content_list.append(f'🚩주간사 : ' + self.underwriter_info)
+        self.content_list.append(f'🚩주간사(수수료, 배정물량) : ' + self.underwriter_info)
+        self.content_list.append(f'🚩주간사 : ' + self.underwriter_list)
 
 
 class ConvertBiddingData(ConvertIpoDataType):
@@ -109,6 +112,8 @@ class ConvertBiddingData(ConvertIpoDataType):
         super().to_content_list()
         p_tag_style = '<p data-ke-size="size14" style="margin: 0">'
 
+        del self.content_list[-1]
+
         self.content_list[0] = '<b>' + self.content_list[0] + '</b>'
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
         if self.is_from_KONEX:
@@ -118,6 +123,9 @@ class ConvertBiddingData(ConvertIpoDataType):
 
     def get_telegram_content(self):
         super().to_content_list()
+
+        del self.content_list[-1]
+
         self.content_list = [content + '\n' for content in self.content_list]
         if self.is_from_KONEX:
             self.content_list.insert(0, f'<b>❗❗코넥스→코스닥 이전상장 종목</b>\n')
@@ -135,9 +143,9 @@ class ConvertIpoReadyData(ConvertIpoDataType):
 
         del self.content_list[:2]
         del self.content_list[1]
-        del self.content_list[-1]
+        del self.content_list[-2]
 
-        self.content_list[-5:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
+        self.content_list[-6:] = [content.replace('예상', '확정') for content in self.content_list[-6:]]
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
 
         if self.is_from_KONEX:
@@ -150,9 +158,9 @@ class ConvertIpoReadyData(ConvertIpoDataType):
 
         del self.content_list[:2]
         del self.content_list[1]
-        del self.content_list[-1]
+        del self.content_list[-2]
 
-        self.content_list[-5:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
+        self.content_list[-6:] = [content.replace('예상', '확정') for content in self.content_list[-6:]]
         self.content_list = [content + '\n' for content in self.content_list]
         if self.is_from_KONEX:
             self.content_list.insert(0, f'<b>❗❗코넥스→코스닥 이전상장 종목</b>\n')

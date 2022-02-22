@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-SPAC_company = {'디비금융': 'DB금융', '아이비케이에스': 'IBKS', '에스케이': 'SK', 'NH': '엔에이치', 'KB': '케이비'}
+SPAC_company = {'디비금융': 'DB금융', '아이비케이에스': 'IBKS', '에스케이': 'SK', 'NH': '엔에이치', 'KB': '케이비', '에이치엠씨아이비': '에이치엠씨'}
 
 
 def convert_SPAC(company_name):
@@ -19,8 +19,19 @@ def convert_SPAC(company_name):
     spac_underwriter = company_name.replace(spac_num_full, '')
 
     try:
-        spac_name = SPAC_company[spac_underwriter] + '스팩' + spac_num
+        spac_underwriter = SPAC_company[spac_underwriter]
     except:
+        #그대로 사용
+        pass
+
+    spac_name = ''
+    if spac_underwriter in ['SK', '교보', '하나금융', '하나머스트', '한국']:
+        spac_name = spac_underwriter + spac_num + '스팩'
+
+    elif spac_underwriter in ['IBKS', '대신밸런스', '신한', '에이치엠씨', '유안타', '케이비', '하이', '한화플러스']:
+        spac_name = spac_underwriter + '제' + spac_num + '스팩'
+
+    else:
         spac_name = spac_underwriter + '스팩' + spac_num
 
     return spac_name
@@ -112,6 +123,14 @@ class IpoDemandForecast:
         self.commitment_ratio = None
 
 
+class IpoBiddingResult:
+    def __init__(self):
+        self.num_of_equal_allocated_stocks = None
+        self.num_of_investors = None
+        self.final_competition_ratio = None
+        self.final_commitment_ratio = None
+
+
 class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderwriter, IpoDemandForecast):
     def __init__(self, company_name):
         self.company_name = company_name
@@ -121,6 +140,7 @@ class IpoData(IpoDate, IpoPrice, IpoNewStocksInfo, IpoStockConditions, IpoUnderw
         self.ref_url_ipo_stock = None
         self.ref_url_38com = None
         self.is_from_KONEX = False
+        self.market_type = None
         IpoDate.__init__(self)
         IpoPrice.__init__(self)
         IpoNewStocksInfo.__init__(self)
@@ -398,6 +418,15 @@ class Crawler38Communication(IpoCrawler):
         self.company_name = company_name
         return company_summary
 
+    def crawl_market_type(self):
+        company_summary = self.find_table_by_summary('기업개요')
+        market_type_tr = company_summary.find_all('tr')[1]
+        market_type_td = market_type_tr.find_all('td')[1]
+        market_type = market_type_td.text.strip()
+        market_type = 'KOSDAQ' if market_type == '코스닥' else 'KOSPI'
+
+        return market_type
+
     def crawl_ipo_date(self):
         ipo_date = IpoDate()
         table = self.find_table_by_summary('공모청약일정')
@@ -462,8 +491,8 @@ class Crawler38Communication(IpoCrawler):
         competition_ratio = demand_forecast_rows_tr[0].text.replace(':1', '').strip()
         commitment_ratio = demand_forecast_rows_tr[1].text.replace('0.00%', '').replace('%', '').strip()
 
-        ipo_demand_forecast.competition_ratio = competition_ratio if any(competition_ratio) else 0
-        ipo_demand_forecast.commitment_ratio = commitment_ratio if any(commitment_ratio) else 0
+        ipo_demand_forecast.competition_ratio = float(competition_ratio) if any(competition_ratio) else 0
+        ipo_demand_forecast.commitment_ratio = float(commitment_ratio) if any(commitment_ratio) else 0
 
         return ipo_demand_forecast
 
@@ -471,6 +500,7 @@ class Crawler38Communication(IpoCrawler):
         self.parsing_html(url)
         self.crawl_company_name()
         ipo_data = IpoData(self.company_name)
+        ipo_data.market_type = self.crawl_market_type()
 
         ipo_date = self.crawl_ipo_date()
         ipo_data.set_ipo_date(ipo_date)
@@ -575,16 +605,30 @@ class CrawlerIpoStock(IpoCrawler):
         self.company_name = self.soup.find('strong', {'class': 'view_tit'}).text.strip()
         return self.company_name
 
-    def check_is_company_from_KONEX(self, url):
+    def crawl_market_type(self, url):
         if self.soup is None:
             self.parsing_html(url)
+
         try:
-            stock_market_img = self.soup.select('img[src^="/image/contents/f.jpg"]')[0]
-            print(f'{self.company_name} : from KONEX')
-            return True
+            kosdaq_img = self.soup.select('img[src^="/image/contents/co.gif"]')[0]
+            print(f'{self.company_name} : will list in KOSDAQ')
+            return 'KOSDAQ'
         except IndexError:
-            print(f'{self.company_name} : not from KONEX')
-            return False
+            pass
+
+        try:
+            kospi_img = self.soup.select('img[src^="/image/contents/u.gif"]')[0]
+            print(f'{self.company_name} : will list in KOSPI')
+            return 'KOSPI'
+        except IndexError:
+            pass
+
+        try:
+            konex_img = self.soup.select('img[src^="/image/contents/f.jpg"]')[0]
+            print(f'{self.company_name} : from KONEX, will list in KOSDAQ')
+            return 'KONEX'
+        except IndexError:
+            pass
 
     def get_stock_conditions(self, stock_condition_trs):
         stock_conditions = []
@@ -615,7 +659,7 @@ class CrawlerIpoStock(IpoCrawler):
             last_bidding_finish_date_of_page = self.convert_bidding_td_to_datetime(bidding_period_td_list[0], 'finish')
 
             if last_bidding_finish_date_of_page < first_bidding_start_date_of_page:
-                last_bidding_finish_date_of_page += relativedelta(years=1)
+                first_bidding_start_date_of_page -= relativedelta(years=1)
 
             if (first_bidding_start_date_of_page - self.target_date).days > 1:
                 continue
@@ -625,6 +669,12 @@ class CrawlerIpoStock(IpoCrawler):
                 for idx in range(-1, -len(bidding_period_td_list) - 1, -1):
                     bidding_start = self.convert_bidding_td_to_datetime(bidding_period_td_list[idx], 'start')
                     bidding_finish = self.convert_bidding_td_to_datetime(bidding_period_td_list[idx], 'finish')
+
+                    if bidding_start.month == 12 and bidding_start.month > self.target_date.month:
+                        bidding_start -= relativedelta(years=1)
+                    if bidding_finish.month == 12 and bidding_finish.month > self.target_date.month:
+                        bidding_finish -= relativedelta(years=1)
+            
                     date_diff_bidding_start = (self.target_date - bidding_start).days
                     date_diff_bidding_finish = (self.target_date - bidding_finish).days
 
@@ -824,7 +874,8 @@ class CrawlerIpoStock(IpoCrawler):
         else:
             self.crawl_company_name(url)
             ipo_data = IpoData(self.company_name)
-            ipo_data.is_from_KONEX = self.check_is_company_from_KONEX(url)
+            ipo_data.market_type = self.crawl_market_type(url)
+            ipo_data.is_from_KONEX = True if ipo_data.market_type == 'KONEX' else False
             ipo_data.set_public_offering_page_url(url)
             ipo_tables = self.select_tables_by_class('view_tb')[:4]
 
