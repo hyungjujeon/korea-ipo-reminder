@@ -112,7 +112,7 @@ class ConvertBiddingData(ConvertIpoDataType):
         super().to_content_list()
         p_tag_style = '<p data-ke-size="size14" style="margin: 0">'
 
-        del self.content_list[-2]
+        del self.content_list[-1]
 
         self.content_list[0] = '<b>' + self.content_list[0] + '</b>'
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
@@ -124,7 +124,7 @@ class ConvertBiddingData(ConvertIpoDataType):
     def get_telegram_content(self):
         super().to_content_list()
 
-        del self.content_list[-2]
+        del self.content_list[-1]
 
         self.content_list = [content + '\n' for content in self.content_list]
         if self.is_from_KONEX:
@@ -145,7 +145,7 @@ class ConvertIpoReadyData(ConvertIpoDataType):
         del self.content_list[1]
         del self.content_list[-2]
 
-        self.content_list[-6:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
+        self.content_list[-6:] = [content.replace('예상', '확정') for content in self.content_list[-6:]]
         self.content_list = [p_tag_style + content + '</p>' for content in self.content_list]
 
         if self.is_from_KONEX:
@@ -160,7 +160,7 @@ class ConvertIpoReadyData(ConvertIpoDataType):
         del self.content_list[1]
         del self.content_list[-2]
 
-        self.content_list[-6:] = [content.replace('예상', '확정') for content in self.content_list[-5:]]
+        self.content_list[-6:] = [content.replace('예상', '확정') for content in self.content_list[-6:]]
         self.content_list = [content + '\n' for content in self.content_list]
         if self.is_from_KONEX:
             self.content_list.insert(0, f'<b>❗❗코넥스→코스닥 이전상장 종목</b>\n')
