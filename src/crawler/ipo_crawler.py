@@ -323,6 +323,7 @@ class Crawler38Communication(IpoCrawler):
                 tds = row.find_all('td')
                 if tds[3].text == country and tds[1].text == port:
                     free_proxy = tds[0].text
+                    print(f'{tds[1].text} port, proxy: {free_proxy}')
                     proxy = {"https": free_proxy, "http": free_proxy}
                     try:
                         response = requests.get(url, proxies=proxy)
@@ -998,12 +999,14 @@ def get_bidding_data_list(target_date):
     crawler_ipo_stock = CrawlerIpoStock()
     crawler_ipo_stock.set_target_date(target_date)
 
-    bidding_data_list_38com = crawler_38com.get_bidding_data_list_of_lists()
     bidding_data_list_ipo_stock = crawler_ipo_stock.get_bidding_data_list_of_lists()
-
-    bidding_data_list = double_check_data(bidding_data_list_38com, bidding_data_list_ipo_stock)
-
-    return bidding_data_list
+    try:
+        bidding_data_list_38com = crawler_38com.get_bidding_data_list_of_lists()
+        bidding_data_list = double_check_data(bidding_data_list_38com, bidding_data_list_ipo_stock)
+        return bidding_data_list
+    except Exception as e:
+        print(f'{e}, proxy 문제로 38com 크롤링 불가')
+        return bidding_data_list_ipo_stock
 
 
 def get_ipo_data_list(target_date):
@@ -1013,12 +1016,14 @@ def get_ipo_data_list(target_date):
     crawler_38com.set_target_date(target_date)
     crawler_ipo_stock.set_target_date(target_date)
 
-    ipo_data_list_38com = crawler_38com.get_ipo_data_list_of_lists()
     ipo_data_list_ipo_stock = crawler_ipo_stock.get_ipo_data_list_of_lists()
-
-    ipo_data_list = double_check_data(ipo_data_list_38com, ipo_data_list_ipo_stock)
-
-    return ipo_data_list
+    try:
+        ipo_data_list_38com = crawler_38com.get_ipo_data_list_of_lists()
+        ipo_data_list = double_check_data(ipo_data_list_38com, ipo_data_list_ipo_stock)
+        return ipo_data_list
+    except Exception as e:
+        print(f'{e}, proxy 문제로 38com 크롤링 불가')
+        return ipo_data_list_ipo_stock
 
 
 def get_ipo_after_data(company_name):
